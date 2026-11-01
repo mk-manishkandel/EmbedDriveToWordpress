@@ -75,6 +75,17 @@ add_action(
 							}
 
 							return [ 'ok' => true ];
+						case 'diagnose':
+							global $wpdb;
+
+							return [
+								'accounts'  => get_option( 'embed_drive_accounts' ),
+								'raw'       => $wpdb->get_var( "SELECT option_value FROM {$wpdb->options} WHERE option_name = 'embed_drive_accounts'" ),
+								'active'    => get_option( 'active_plugins' ),
+								'shortcode' => shortcode_exists( 'embed_drive' ),
+								'post'      => get_post() ? get_post()->ID : null,
+								'html'      => do_shortcode( '[embed_drive mode="files" folder="public"]' ),
+							];
 						case 'render':
 							return [ 'html' => do_shortcode( (string) $r->get_param( 'code' ) ) ];
 						case 'render_as_post':
