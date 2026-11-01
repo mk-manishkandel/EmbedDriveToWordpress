@@ -14,10 +14,15 @@ final class Updater {
 
 	const ASSET = 'embed-drive.zip';
 	const CACHE = 'embed_drive_latest_release';
+	const SIGNATURE = 'embed-drive.zip.sig';
+
+	/** Updates must be signed with the matching private key, which is never kept on GitHub. */
+	const PUBLIC_KEY = 'WxB2OHI9oW/LJn63y6Kwck+SG2khsEWbE1G95etL+TM=';
 
 	public static function boot(): void {
 		add_filter( 'update_plugins_github.com', [ self::class, 'check' ], 10, 3 );
 		add_filter( 'plugins_api', [ self::class, 'details' ], 10, 3 );
+		add_filter( 'upgrader_pre_download', [ self::class, 'verify_package' ], 10, 4 );
 		// Runs before WordPress's own check on this screen, which is also hooked here.
 		add_action( 'load-update-core.php', [ self::class, 'check_again' ], 1 );
 	}
@@ -63,6 +68,55 @@ final class Updater {
 			'package'      => $release['package'],
 			'requires_php' => '8.0',
 		];
+	}
+
+	/**
+	 * Download an update of this plugin only if its signature is good. A release's GitHub page can
+	 * be changed by anyone who gets into the account, so it isn't enough that the file came from there.
+	 *
+	 * @param false|string|\WP_Error $reply      Existing result.
+	 * @param string                 $package    Package address.
+	 * @param \WP_Upgrader           $upgrader   The upgrader.
+	 * @param array                  $hook_extra Which plugin this is for.
+	 * @return false|string|\WP_Error Path of the checked file.
+	 */
+	public static function verify_package( $reply, $package, $upgrader, $hook_extra = [] ) {
+		$ours = plugin_basename( EMBED_DRIVE_FILE ) === ( $hook_extra['plugin'] ?? '' );
+		$base = 'https://github.com/' . EMBED_DRIVE_REPO . '/releases/download/v';
+		if ( ! preg_match( '#^' . preg_quote( $base, '#' ) . '(\d+\.\d+\.\d+)/' . preg_quote( self::ASSET, '#' ) . '$#', (string) $package, $match ) ) {
+			return $ours ? self::unsigned() : $reply;
+		}
+
+		$signature = wp_safe_remote_get( $base . $match[1] . '/' . self::SIGNATURE, [ 'timeout' => 15, 'limit_response_size' => 1024 ] );
+		if ( is_wp_error( $signature ) || 200 !== (int) wp_remote_retrieve_response_code( $signature ) ) {
+			return self::unsigned();
+		}
+
+		$upgrader->skin->feedback( 'downloading_package', $package );
+		$file = download_url( $package, 300 );
+		if ( is_wp_error( $file ) ) {
+			return $file;
+		}
+
+		$raw   = base64_decode( trim( (string) wp_remote_retrieve_body( $signature ) ), true );
+		$key   = base64_decode( (string) apply_filters( 'embed_drive_update_key', self::PUBLIC_KEY ), true );
+		$valid = false;
+		try {
+			$valid = false !== $raw && sodium_crypto_sign_verify_detached( $raw, 'embed-drive:' . $match[1] . ':' . hash_file( 'sha256', $file ), (string) $key );
+		} catch ( \Throwable $error ) {
+			$valid = false; // A signature of the wrong length is simply not valid.
+		}
+		if ( ! $valid ) {
+			wp_delete_file( $file );
+
+			return self::unsigned();
+		}
+
+		return $file;
+	}
+
+	private static function unsigned(): \WP_Error {
+		return new \WP_Error( 'embed_drive_unsigned', __( 'This update was refused because it is not signed by the Embed Drive project.', 'embed-drive' ) );
 	}
 
 	/**
@@ -133,15 +187,17 @@ final class Updater {
 
 		$data    = json_decode( wp_remote_retrieve_body( $response ), true );
 		$package = '';
+		$signed  = false;
 		foreach ( (array) ( $data['assets'] ?? [] ) as $asset ) {
 			if ( self::ASSET === ( $asset['name'] ?? '' ) ) {
 				$package = (string) $asset['browser_download_url'];
 			}
+			$signed = $signed || self::SIGNATURE === ( $asset['name'] ?? '' );
 		}
 		// WordPress installs whatever this names, so it may only be a file released from this repository.
 		$version = ltrim( (string) ( $data['tag_name'] ?? '' ), 'vV' );
 		$release = 'https://github.com/' . EMBED_DRIVE_REPO . '/releases/';
-		if ( $release . 'download/v' . $version . '/' . self::ASSET !== $package || ! preg_match( '/^\d+\.\d+\.\d+$/', $version ) ) {
+		if ( ! $signed || $release . 'download/v' . $version . '/' . self::ASSET !== $package || ! preg_match( '/^\d+\.\d+\.\d+$/', $version ) ) {
 			return null;
 		}
 
@@ -172,9 +228,11 @@ final class Updater {
 
 		// GitHub answers 302 when the file exists, sending the download to its file storage.
 		$package = $base . '/download/v' . $match[1] . '/' . self::ASSET;
-		$file    = wp_remote_head( $package, [ 'timeout' => 10, 'redirection' => 0 ] );
-		if ( is_wp_error( $file ) || ! in_array( (int) wp_remote_retrieve_response_code( $file ), [ 200, 302 ], true ) ) {
-			return null;
+		foreach ( [ $package, $base . '/download/v' . $match[1] . '/' . self::SIGNATURE ] as $asset ) {
+			$file = wp_remote_head( $asset, [ 'timeout' => 10, 'redirection' => 0 ] );
+			if ( is_wp_error( $file ) || ! in_array( (int) wp_remote_retrieve_response_code( $file ), [ 200, 302 ], true ) ) {
+				return null;
+			}
 		}
 
 		return [

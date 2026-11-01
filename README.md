@@ -79,7 +79,7 @@ Someone hosting sites for others can run the optional [sign-in relay](relay/READ
 - **Safe inline types only.** HTML, SVG and anything else outside a short allowlist is sent as a download, never rendered on your site's origin.
 - **Visitor links don't expire**, so cached pages keep working. **Accounts & Settings > Reset visitor links** cancels them all if one leaks or after you remove a module.
 - **Document previews stay sandboxed.** Word, Excel and PDF files are drawn in a frame with no access to your site, and the viewer refuses to run outside it.
-- **Updates come only from this repository's releases.** They aren't separately signed, so whoever controls the GitHub account controls what sites install. Keep two-factor sign-in on for it.
+- **Updates are signed.** A site installs an update only if it comes from this repository's releases and carries a signature from the maintainer's private key, which is never stored on GitHub. Installing a ZIP by hand skips this check, so only use ZIPs from the releases page.
 
 What this can't protect against: a stolen WordPress admin or Editor login, another vulnerable plugin or theme, or a module pointed at a folder that shouldn't be public. Use two-factor sign-in for those accounts.
 
@@ -99,10 +99,15 @@ tests/run.sh 8.4      # A specific PHP version
 1. Update the version in `embed-drive.php` (the header and `EMBED_DRIVE_VERSION`) and `readme.txt` (`Stable tag` and the changelog).
 2. Commit, then tag and push:
    ```sh
-   git tag v0.2.0 && git push origin main v0.2.0
+   git tag v1.2.3 && git push origin main v1.2.3
+   ```
+3. GitHub Actions runs the tests, checks that the versions match the tag, builds `embed-drive.zip` and creates a **draft** release, which sites can't see yet.
+4. Sign and publish it on your own computer, with the private key:
+   ```sh
+   node bin/sign-release.mjs 1.2.3 ~/embed-drive-signing.pem
    ```
 
-GitHub Actions runs the tests, checks that the versions match the tag, builds `embed-drive.zip` and publishes the release. Installed sites normally see the update within a day, or straight away with **Check again** under Dashboard > Updates.
+Installed sites normally see the update within a day, or straight away with **Check again** under **Dashboard > Updates**. If the signing key is ever replaced, sites must install the next version by hand, because they only trust the key they already have.
 
 ## Independence
 

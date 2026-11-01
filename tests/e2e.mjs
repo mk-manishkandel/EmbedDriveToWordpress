@@ -1,6 +1,7 @@
 // End-to-end tests against a running WordPress with the plugin and tests/mock-endpoints.php loaded.
 // Usage: node tests/e2e.mjs http://127.0.0.1:9500 http://127.0.0.1:9400
 import { execFileSync } from 'node:child_process';
+import { createHash, generateKeyPairSync, sign } from 'node:crypto';
 import { mkdtempSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
@@ -694,6 +695,45 @@ await it( 'SECURITY: array parameters are rejected cleanly', async () => {
 	const r = await fetch( url );
 	assert.equal( r.status, 404 );
 	assert.doesNotMatch( await r.text(), /Warning|Array to string/ );
+} );
+
+await it( 'SECURITY: an update installs only with a good signature', async () => {
+	const { publicKey, privateKey } = generateKeyPairSync( 'ed25519' );
+	const other = generateKeyPairSync( 'ed25519' ).privateKey;
+	const key = publicKey.export( { type: 'spki', format: 'der' } ).subarray( -32 ).toString( 'base64' );
+	const zipBytes = Buffer.from( 'pretend plugin zip' );
+	const zip = zipBytes.toString( 'base64' );
+	const signed = ( message, signer = privateKey ) => sign( null, Buffer.from( message ), signer ).toString( 'base64' );
+	const hash = createHash( 'sha256' ).update( zipBytes ).digest( 'hex' );
+	const good = signed( `embed-drive:9.9.7:${ hash }` );
+	const repo = ( await test_( 'repo' ) ).repo;
+	const pkg = `https://github.com/${ repo }/releases/download/v9.9.7/embed-drive.zip`;
+	const check = ( params ) => test_( 'verify_package', { package: pkg, key, zip, sig: good, ...params } );
+
+	const passed = await check( {} );
+	assert.equal( passed.reply, 'file', 'a good signature is accepted' );
+	assert.equal( passed.bytes, zip );
+
+	const refused = {
+		'no signature': { sig: '' },
+		'not a signature': { sig: 'hello' },
+		'someone else signed it': { sig: signed( `embed-drive:9.9.7:${ hash }`, other ) },
+		'the file was changed': { zip: Buffer.from( 'evil plugin zip' ).toString( 'base64' ) },
+		'signed for another version': { sig: signed( `embed-drive:9.9.6:${ hash }` ) },
+		'another address': { package: 'https://evil.example.test/embed-drive.zip' },
+	};
+	for ( const [ name, params ] of Object.entries( refused ) ) {
+		assert.equal( ( await check( params ) ).reply, 'embed_drive_unsigned', name );
+	}
+
+	const elsewhere = await check( { package: 'https://example.test/other-plugin.zip', plugin: 'other/other.php' } );
+	assert.equal( elsewhere.reply, false, 'other plugins are left alone' );
+} );
+
+await it( 'updater offers nothing for a release that has no signature', async () => {
+	await test_( 'github_mode', { mode: 'no_sig' } );
+	assert.ok( ! ( await test_( 'update_check' ) )?.version );
+	await test_( 'github_mode', { mode: '' } );
 } );
 
 await it( 'updater only accepts a package released from this repository', async () => {

@@ -3,7 +3,7 @@ Tags: google drive, file browser, documents, download, embed
 Requires at least: 6.0
 Tested up to: 7.1
 Requires PHP: 8.0
-Stable tag: 0.3.2
+Stable tag: 0.3.3
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -60,6 +60,9 @@ A Drive shortcut can point to a file outside the chosen folder, so shortcuts are
 File lists are cached for 5 minutes. Use Clear file cache in the settings to refresh sooner.
 
 == Changelog ==
+
+= 0.3.3 =
+* Updates are now signed. From this version on, a site refuses an update that doesn't carry the project's signature, even if it appears on the project's GitHub page.
 
 = 0.3.2 =
 Security release. Please update, then clear any page cache: links on cached pages stop working until it is cleared.

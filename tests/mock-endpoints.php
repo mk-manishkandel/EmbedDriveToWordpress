@@ -32,6 +32,7 @@ add_filter( 'embed_drive_relay_url', static fn() => (string) get_option( 'embed_
 add_filter( 'embed_drive_thumbnail_hosts', static fn() => [ '127.0.0.1' ] );
 add_filter( 'embed_drive_allow_http_thumbnails', '__return_true' );
 add_filter( 'embed_drive_cache_ttl', static fn() => 0 );
+add_filter( 'embed_drive_update_key', static fn( $key ) => get_option( 'embed_drive_test_update_key' ) ?: $key );
 add_filter( 'embed_drive_rate_limit', static fn( $limit ) => (int) get_option( 'embed_drive_test_rate', 0 ) ?: $limit );
 add_filter( 'http_request_host_is_external', '__return_true' );
 add_filter( 'http_request_args', static function ( $args ) {
@@ -44,6 +45,23 @@ add_filter( 'http_request_args', static function ( $args ) {
 add_filter(
 	'pre_http_request',
 	static function ( $response, $args, $url ) {
+		// Stand in for a release's files, when checking signatures.
+		$signed = get_option( 'embed_drive_test_signed' );
+		if ( is_array( $signed ) && false !== strpos( $url, '/releases/download/' ) ) {
+			$is_signature = str_ends_with( $url, '.sig' );
+			$body         = $is_signature ? (string) $signed['sig'] : base64_decode( $signed['zip'] );
+			if ( ! empty( $args['filename'] ) ) {
+				file_put_contents( $args['filename'], $body );
+			}
+
+			return [
+				'headers'  => [],
+				'body'     => $body,
+				'response' => [ 'code' => $is_signature && '' === $signed['sig'] ? 404 : 200, 'message' => '' ],
+				'cookies'  => [],
+				'filename' => $args['filename'] ?? null,
+			];
+		}
 		$mode = get_option( 'embed_drive_test_github', '' );
 		if ( ! $mode || 0 !== strpos( $url, 'https://' ) || false === strpos( $url, 'github.com' ) ) {
 			return $response;
@@ -56,6 +74,9 @@ add_filter(
 			'filename' => null,
 		];
 		if ( false !== strpos( $url, 'api.github.com' ) ) {
+			if ( 'no_sig' === $mode ) {
+				return $reply( 403 );
+			}
 			if ( in_array( $mode, [ 'offsite', 'api_ok' ], true ) ) {
 				$host = 'offsite' === $mode ? 'evil.example.test' : 'github.com';
 
@@ -68,6 +89,7 @@ add_filter(
 									'name'                 => 'embed-drive.zip',
 									'browser_download_url' => "https://$host/" . EMBED_DRIVE_REPO . '/releases/download/v9.9.7/embed-drive.zip',
 								],
+								[ 'name' => 'embed-drive.zip.sig' ],
 							],
 						]
 					),
@@ -78,6 +100,10 @@ add_filter(
 		}
 		if ( str_ends_with( $url, '/releases/latest' ) ) {
 			return 'down' === $mode ? $reply( 500 ) : $reply( 302, [ 'location' => 'https://github.com/o/r/releases/tag/v9.9.8' ] );
+		}
+
+		if ( 'no_sig' === $mode && str_ends_with( $url, '.sig' ) ) {
+			return $reply( 404 );
 		}
 
 		return 'no_asset' === $mode ? $reply( 404 ) : $reply( 302, [ 'location' => 'https://objects.example.test/f' ] );
@@ -220,6 +246,24 @@ add_action(
 							$config = $found ? json_decode( html_entity_decode( $found[1] ), true ) : [];
 
 							return [ 'status' => $response->get_status(), 'token' => $config['token'] ?? null, 'html' => substr( $html, 0, 120 ) ];
+						case 'repo':
+							return [ 'repo' => EMBED_DRIVE_REPO ];
+						case 'verify_package':
+							require_once ABSPATH . 'wp-admin/includes/file.php';
+							require_once ABSPATH . 'wp-admin/includes/class-wp-upgrader.php';
+							update_option( 'embed_drive_test_update_key', (string) $r->get_param( 'key' ) );
+							update_option( 'embed_drive_test_signed', [ 'zip' => (string) $r->get_param( 'zip' ), 'sig' => (string) $r->get_param( 'sig' ) ] );
+							$upgrader = new Plugin_Upgrader( new Automatic_Upgrader_Skin() );
+							$upgrader->init();
+							$result = apply_filters( 'upgrader_pre_download', false, (string) $r->get_param( 'package' ), $upgrader, [ 'plugin' => (string) ( $r->get_param( 'plugin' ) ?? plugin_basename( EMBED_DRIVE_FILE ) ) ] );
+							delete_option( 'embed_drive_test_update_key' );
+							delete_option( 'embed_drive_test_signed' );
+							$bytes = is_string( $result ) ? base64_encode( (string) file_get_contents( $result ) ) : null;
+							if ( is_string( $result ) ) {
+								wp_delete_file( $result );
+							}
+
+							return [ 'reply' => is_wp_error( $result ) ? $result->get_error_code() : ( is_string( $result ) ? 'file' : $result ), 'bytes' => $bytes ];
 						case 'set_rate':
 							update_option( 'embed_drive_test_rate', (int) $r->get_param( 'limit' ) );
 
