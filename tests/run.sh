@@ -22,11 +22,29 @@ PHP
 echo '{"steps":[{"step":"activatePlugin","pluginPath":"embed-drive/embed-drive.php"}]}' > "$WORK/blueprint.json"
 
 node "$ROOT/tests/mock-google.mjs" &
-(cd "$WORK" && npx -y @wp-playground/cli@3.1.61 server --port=9500 --php="$PHP_VERSION" --wp="$WP_VERSION" \
+(cd "$WORK" && exec npx -y @wp-playground/cli@3.1.61 server --port=9500 --php="$PHP_VERSION" --wp="$WP_VERSION" \
 	--mount="$ROOT:/wordpress/wp-content/plugins/embed-drive" \
 	--mount="$ROOT/tests/mock-endpoints.php:/wordpress/wp-content/mu-plugins/mock-endpoints.php" \
 	--mount="$WORK/relay-test:/wordpress/relay-test" \
 	--blueprint="$WORK/blueprint.json") > "$WORK/server.log" 2>&1 &
+SERVER=$!
 
-curl -s -o /dev/null --retry 200 --retry-delay 3 --retry-all-errors --max-time 20 http://127.0.0.1:9500/ || { cat "$WORK/server.log"; exit 1; }
+# First boot downloads WordPress, so allow several minutes.
+ready=""
+for _ in $(seq 1 120); do
+	if curl -s -o /dev/null --max-time 20 http://127.0.0.1:9500/; then
+		ready=1
+		break
+	fi
+	if ! kill -0 "$SERVER" 2>/dev/null; then
+		echo "WordPress server exited early"
+		break
+	fi
+	sleep 3
+done
+if [ -z "$ready" ]; then
+	grep -v 'npm warn' "$WORK/server.log" || true
+	exit 1
+fi
+
 node "$ROOT/tests/e2e.mjs" http://127.0.0.1:9500 http://127.0.0.1:9400
