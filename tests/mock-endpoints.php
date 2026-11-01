@@ -39,6 +39,34 @@ add_filter( 'http_request_args', static function ( $args ) {
 	return $args;
 } );
 
+// Stand in for GitHub. The API refuses (as it does when rate limited) and the release page still answers.
+add_filter(
+	'pre_http_request',
+	static function ( $response, $args, $url ) {
+		$mode = get_option( 'embed_drive_test_github', '' );
+		if ( ! $mode || 0 !== strpos( $url, 'https://' ) || false === strpos( $url, 'github.com' ) ) {
+			return $response;
+		}
+		$reply = static fn( int $code, array $headers = [] ) => [
+			'headers'  => $headers,
+			'body'     => '',
+			'response' => [ 'code' => $code, 'message' => '' ],
+			'cookies'  => [],
+			'filename' => null,
+		];
+		if ( false !== strpos( $url, 'api.github.com' ) ) {
+			return $reply( 403 );
+		}
+		if ( str_ends_with( $url, '/releases/latest' ) ) {
+			return 'down' === $mode ? $reply( 500 ) : $reply( 302, [ 'location' => 'https://github.com/o/r/releases/tag/v9.9.8' ] );
+		}
+
+		return 'no_asset' === $mode ? $reply( 404 ) : $reply( 302, [ 'location' => 'https://objects.example.test/f' ] );
+	},
+	10,
+	3
+);
+
 // Test-only endpoint to set up state and run PHP paths that have no HTTP route.
 add_action(
 	'rest_api_init',
@@ -156,6 +184,19 @@ add_action(
 							set_site_transient( 'embed_drive_latest_release', (array) $r->get_param( 'release' ), HOUR_IN_SECONDS );
 
 							return [ 'ok' => true ];
+						case 'github_mode':
+							update_option( 'embed_drive_test_github', (string) $r->get_param( 'mode' ) );
+							delete_site_transient( 'embed_drive_latest_release' );
+
+							return [ 'ok' => true ];
+						case 'check_again':
+							wp_set_current_user( (int) $r->get_param( 'user' ) );
+							$_GET['force-check'] = '1';
+							set_site_transient( 'update_plugins', (object) [ 'last_checked' => time() ] );
+							do_action( 'load-update-core.php' );
+							unset( $_GET['force-check'] );
+
+							return [ 'release' => get_site_transient( 'embed_drive_latest_release' ) ];
 						case 'settings_html':
 							wp_set_current_user( 1 );
 							ob_start();

@@ -356,6 +356,29 @@ await it( 'updater offers a newer GitHub release', async () => {
 	assert.equal( update.package, 'https://example.test/embed-drive.zip' );
 } );
 
+await it( 'updater falls back to the release page when the GitHub API refuses', async () => {
+	await test_( 'github_mode', { mode: 'refused' } );
+	const update = await test_( 'update_check' );
+	assert.equal( update.version, '9.9.8' );
+	assert.match( update.package, /\/releases\/download\/v9\.9\.8\/embed-drive\.zip$/ );
+} );
+
+await it( 'updater offers nothing when the release has no zip or GitHub is down', async () => {
+	for ( const mode of [ 'no_asset', 'down' ] ) {
+		await test_( 'github_mode', { mode } );
+		assert.ok( ! ( await test_( 'update_check' ) )?.version, mode );
+	}
+} );
+
+await it( 'Check again drops the saved release answer, for admins only', async () => {
+	const seeded = { version: '9.9.9', url: 'https://example.test/r', package: 'https://example.test/embed-drive.zip', notes: 'n' };
+	await test_( 'github_mode', { mode: 'refused' } );
+	await test_( 'seed_release', { release: seeded } );
+	assert.equal( ( await test_( 'check_again', { user: 0 } ) ).release.version, '9.9.9', 'kept for a visitor' );
+	assert.equal( ( await test_( 'check_again', { user: 1 } ) ).release.version, '9.9.8', 'fresh for an admin' );
+	await test_( 'github_mode', { mode: '' } );
+} );
+
 // --- Sign-in, as a real admin in a browser-like session ---
 const jar = new Map();
 const session = async ( url, init = {} ) => {

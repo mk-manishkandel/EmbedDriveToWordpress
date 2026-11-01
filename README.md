@@ -94,7 +94,7 @@ tests/run.sh 8.4      # A specific PHP version
    git tag v0.2.0 && git push origin main v0.2.0
    ```
 
-GitHub Actions runs the tests, checks that the versions match the tag, builds `embed-drive.zip` and publishes the release. Installed sites normally see the update within a day, or straight away with **Check again** under Dashboard > Updates once the plugin's 6-hour release cache has expired.
+GitHub Actions runs the tests, checks that the versions match the tag, builds `embed-drive.zip` and publishes the release. Installed sites normally see the update within a day, or straight away with **Check again** under Dashboard > Updates.
 
 ## Independence
 
