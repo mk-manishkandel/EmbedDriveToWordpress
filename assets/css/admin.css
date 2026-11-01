@@ -1,0 +1,150 @@
+.embed-drive-admin .embed-drive-accounts,
+.embed-drive-admin .embed-drive-top {
+	max-width: 800px;
+}
+
+.embed-drive-admin .embed-drive-connect {
+	margin: 16px 0 6px;
+}
+
+.embed-drive-admin .embed-drive-connect .button {
+	margin-right: 8px;
+}
+
+.embed-drive-lost {
+	color: #b32d2e;
+}
+
+.embed-drive-advanced {
+	max-width: 800px;
+	margin: 24px 0;
+	padding: 4px 16px;
+	background: #fff;
+	border: 1px solid #c3c4c7;
+}
+
+.embed-drive-advanced summary {
+	padding: 10px 0;
+	font-weight: 600;
+	cursor: pointer;
+}
+
+.embed-drive-advanced code {
+	display: inline-block;
+	margin-top: 4px;
+	word-break: break-all;
+}
+
+.embed-drive-stats {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 12px;
+	margin: 0;
+}
+
+.embed-drive-stats li {
+	min-width: 110px;
+	margin: 0;
+	padding: 12px 16px;
+	background: #fff;
+	border: 1px solid #c3c4c7;
+}
+
+.embed-drive-stats strong {
+	display: block;
+	font-size: 22px;
+}
+
+.embed-drive-admin .subsubsub {
+	float: none;
+	margin: 0 0 8px;
+}
+
+.embed-drive-builder [hidden] {
+	display: none !important;
+}
+
+.embed-drive-picker {
+	width: min(560px, 92vw);
+	max-height: 80vh;
+	padding: 0;
+	border: 0;
+	border-radius: 8px;
+}
+
+.embed-drive-picker[open] {
+	display: flex;
+	flex-direction: column;
+}
+
+.embed-drive-picker::backdrop {
+	background: rgba(0, 0, 0, 0.6);
+}
+
+.embed-drive-picker__head,
+.embed-drive-picker__foot {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	padding: 12px 16px;
+}
+
+.embed-drive-picker__head h2 {
+	margin: 0;
+	font-size: 16px;
+}
+
+.embed-drive-picker__foot {
+	justify-content: flex-end;
+	border-top: 1px solid #dcdcde;
+}
+
+.embed-drive-picker__crumbs {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 8px;
+	padding: 0 16px 8px;
+	border-bottom: 1px solid #dcdcde;
+}
+
+.embed-drive-picker__crumbs > :not(:last-child)::after {
+	padding-left: 8px;
+	color: #646970;
+	content: "/";
+}
+
+.embed-drive-picker__status {
+	margin: 12px 16px 0;
+}
+
+.embed-drive-picker__status:empty {
+	display: none;
+}
+
+.embed-drive-picker__list {
+	flex: 1;
+	min-height: 200px;
+	margin: 0;
+	overflow-y: auto;
+}
+
+.embed-drive-picker__list li {
+	margin: 0;
+}
+
+.embed-drive-picker__item {
+	width: 100%;
+	padding: 8px 16px;
+	overflow: hidden;
+	text-align: left;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+	cursor: pointer;
+	background: none;
+	border: 0;
+}
+
+.embed-drive-picker__item:hover,
+.embed-drive-picker__item:focus {
+	background: #f0f0f1;
+}

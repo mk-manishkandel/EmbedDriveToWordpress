@@ -1,0 +1,164 @@
+<?php
+/**
+ * Plugin Name: Embed Drive test wiring
+ * Description: Test-only must-use plugin. Points the plugin at the mock Google server.
+ */
+
+$embed_drive_mock = 'http://127.0.0.1:' . ( getenv( 'MOCK_PORT' ) ?: 9400 );
+
+add_filter(
+	'embed_drive_google_endpoint',
+	static function ( $url, $name ) use ( $embed_drive_mock ) {
+		$map = [
+			'auth'     => '/auth',
+			'token'    => '/token',
+			'revoke'   => '/revoke',
+			'userinfo' => '/userinfo',
+			'drive'    => '/drive/v3',
+		];
+
+		return $embed_drive_mock . $map[ $name ];
+	},
+	10,
+	2
+);
+add_filter( 'embed_drive_thumbnail_hosts', static fn() => [ '127.0.0.1' ] );
+add_filter( 'embed_drive_allow_http_thumbnails', '__return_true' );
+add_filter( 'embed_drive_cache_ttl', static fn() => 0 );
+add_filter( 'http_request_host_is_external', '__return_true' );
+add_filter( 'http_request_args', static function ( $args ) {
+	$args['reject_unsafe_urls'] = false;
+
+	return $args;
+} );
+
+// Test-only endpoint to set up state and run PHP paths that have no HTTP route.
+add_action(
+	'rest_api_init',
+	static function () {
+		register_rest_route(
+			'embed-drive-test/v1',
+			'/do',
+			[
+				'methods'             => 'POST',
+				'permission_callback' => '__return_true',
+				'callback'            => static function ( WP_REST_Request $r ) {
+					switch ( $r->get_param( 'cmd' ) ) {
+						case 'connect':
+							$id = EmbedDrive\Accounts::save_connected(
+								[ 'sub' => '12345', 'email' => 'owner@example.com', 'name' => 'Drive Owner' ],
+								[ 'access_token' => 'access-1', 'refresh_token' => 'refresh-1', 'expires_in' => 3600 ],
+								'own'
+							);
+							EmbedDrive\Settings::update(
+								[
+									'client_id'     => 'test-client',
+									'client_secret' => EmbedDrive\Crypto::encrypt( 'test-secret' ),
+								]
+							);
+
+							return [ 'account' => $id ];
+						case 'settings':
+							EmbedDrive\Settings::update( (array) $r->get_param( 'values' ) );
+
+							return [ 'ok' => true ];
+						case 'disconnect_all':
+							foreach ( array_keys( EmbedDrive\Accounts::all() ) as $id ) {
+								EmbedDrive\Accounts::disconnect( (string) $id );
+							}
+
+							return [ 'ok' => true ];
+						case 'render':
+							return [ 'html' => do_shortcode( (string) $r->get_param( 'code' ) ) ];
+						case 'render_as_post':
+							$author = wp_insert_user(
+								[
+									'user_login' => 'u' . wp_generate_password( 8, false ),
+									'user_pass'  => wp_generate_password(),
+									'role'       => (string) $r->get_param( 'role' ),
+								]
+							);
+							$post   = wp_insert_post(
+								[
+									'post_title'   => 'Test',
+									'post_status'  => 'publish',
+									'post_author'  => $author,
+									'post_content' => (string) $r->get_param( 'code' ),
+								]
+							);
+
+							return [ 'url' => get_permalink( $post ) ];
+						case 'create_page':
+							$post = wp_insert_post(
+								[
+									'post_type'    => 'page',
+									'post_title'   => 'Page',
+									'post_status'  => 'publish',
+									'post_author'  => 1,
+									'post_content' => (string) $r->get_param( 'code' ),
+								]
+							);
+
+							return [ 'url' => get_permalink( $post ) ];
+						case 'forge':
+							return [ 'token' => EmbedDrive\Crypto::sign( (array) $r->get_param( 'payload' ) ) ];
+						case 'expire_token':
+							$id    = EmbedDrive\Accounts::default_id();
+							$plain = EmbedDrive\Crypto::decrypt( get_option( 'embed_drive_token_' . $id ) );
+							$token = json_decode( $plain, true );
+
+							$token['expires_at'] = time() - 10;
+							update_option( 'embed_drive_token_' . $id, EmbedDrive\Crypto::encrypt( wp_json_encode( $token ) ), false );
+
+							return [ 'ok' => true ];
+						case 'check_all':
+							global $embed_drive_mails;
+							$embed_drive_mails = [];
+							add_filter(
+								'pre_wp_mail',
+								static function ( $short, $atts ) {
+									global $embed_drive_mails;
+									$embed_drive_mails[] = $atts;
+									return true;
+								},
+								10,
+								2
+							);
+							EmbedDrive\Accounts::check_all();
+
+							return [ 'accounts' => EmbedDrive\Accounts::all(), 'mails' => $embed_drive_mails ];
+						case 'stored_token':
+							return [ 'raw' => get_option( 'embed_drive_token_' . ( EmbedDrive\Accounts::default_id() ?: 'g12345' ) ) ];
+						case 'log':
+							global $wpdb;
+
+							return $wpdb->get_results( "SELECT event, detail, file_id, user_id FROM {$wpdb->prefix}embed_drive_log ORDER BY id" );
+						case 'update_check':
+							$data = get_plugin_data( EMBED_DRIVE_FILE );
+
+							return apply_filters( 'update_plugins_github.com', false, $data, plugin_basename( EMBED_DRIVE_FILE ), [] );
+						case 'seed_release':
+							set_site_transient( 'embed_drive_latest_release', (array) $r->get_param( 'release' ), HOUR_IN_SECONDS );
+
+							return [ 'ok' => true ];
+						case 'settings_html':
+							wp_set_current_user( 1 );
+							ob_start();
+							EmbedDrive\Admin::settings_page();
+							$settings = ob_get_clean();
+							ob_start();
+							EmbedDrive\Admin::builder_page();
+							$builder = ob_get_clean();
+							ob_start();
+							EmbedDrive\Admin::activity_page();
+							$activity = ob_get_clean();
+
+							return compact( 'settings', 'builder', 'activity' );
+					}
+
+					return new WP_Error( 'unknown' );
+				},
+			]
+		);
+	}
+);

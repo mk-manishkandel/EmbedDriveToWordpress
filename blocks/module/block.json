@@ -1,0 +1,30 @@
+{
+	"$schema": "https://schemas.wp.org/trunk/block.json",
+	"apiVersion": 3,
+	"name": "embed-drive/module",
+	"title": "Embed Drive",
+	"category": "embed",
+	"icon": "cloud",
+	"description": "Show a Google Drive folder or file: file browser, search, embed, or a download button or link.",
+	"keywords": [ "google", "drive", "files", "download" ],
+	"textdomain": "embed-drive",
+	"supports": { "html": false, "align": [ "wide", "full" ] },
+	"attributes": {
+		"mode": { "type": "string", "default": "files" },
+		"account": { "type": "string", "default": "" },
+		"folder": { "type": "string", "default": "" },
+		"file": { "type": "string", "default": "" },
+		"targetName": { "type": "string", "default": "" },
+		"view": { "type": "string", "default": "list" },
+		"sort": { "type": "string", "default": "name" },
+		"order": { "type": "string", "default": "asc" },
+		"download": { "type": "boolean" },
+		"zip": { "type": "boolean", "default": true },
+		"search": { "type": "boolean", "default": true },
+		"preview": { "type": "boolean", "default": true },
+		"label": { "type": "string", "default": "" },
+		"height": { "type": "number", "default": 600 }
+	},
+	"editorScript": "file:./index.js",
+	"style": "embed-drive"
+}
