@@ -408,7 +408,7 @@ await it( 'sign-in with own Google app connects the account, using PKCE', async 
 } );
 
 await it( 'sign-in through the relay: confirmation screen first, then connected', async () => {
-	await test_( 'settings', { values: { relay_url: RELAY } } );
+	await test_( 'relay', { url: RELAY } );
 	await test_( 'disconnect_all' );
 	const start = await follow( await startLink( 'relay' ) );
 	const page = await start.response.text();
@@ -514,6 +514,43 @@ await it( 'disconnect removes the account and its stored token', async () => {
 	const after = await get( 'list', { m } );
 	assert.equal( after.status, 404, 'old page tokens stop working' );
 	await after.arrayBuffer();
+} );
+
+await it( 'a deleted or changed Google app is reported as lost access', async () => {
+	await test_( 'connect' );
+	await test_( 'settings', { values: { client_secret: '' } } );
+	const { accounts, mails } = await test_( 'check_all' );
+	assert.equal( accounts[ account ].status, 'lost' );
+	assert.equal( mails.length, 1 );
+	await test_( 'disconnect_all' );
+} );
+
+await it( 'a fresh site gets the Google app guide and no sign-in button', async () => {
+	await test_( 'relay', { url: '' } );
+	await test_( 'settings', { values: { client_id: '', client_secret: '' } } );
+	const html = await ( await session( `${ SITE }/wp-admin/admin.php?page=embed-drive` ) ).text();
+	assert.match( html, /<details class="embed-drive-advanced" open>/ );
+	assert.match( html, /auth\/drive\.readonly/ );
+	assert.match( html, /<code>[^<]*admin-post\.php\?action=embed_drive_oauth_callback<\/code>/ );
+	assert.ok( ! html.includes( 'embed_drive_oauth_start' ), 'no sign-in link until the app is saved' );
+	assert.ok( ! html.includes( 'name="relay_url"' ), 'no relay field' );
+} );
+
+await it( 'the settings form saves a Google app, and the secret stays encrypted', async () => {
+	const page = await ( await session( `${ SITE }/wp-admin/admin.php?page=embed-drive` ) ).text();
+	const nonce = page.match( /name="_wpnonce" value="([^"]+)"[^>]*>\s*<input type="hidden" name="_wp_http_referer"[^>]*>\s*<details/ )[ 1 ];
+	const r = await session( `${ SITE }/wp-admin/admin-post.php`, {
+		method: 'POST',
+		headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+		body: new URLSearchParams( { action: 'embed_drive_save', _wpnonce: nonce, client_id: 'owner-client', client_secret: 'owner-secret', zip_max_mb: '1024', zip_max_files: '200', log_days: '90' } ),
+	} );
+	await r.arrayBuffer();
+	const html = await ( await session( `${ SITE }/wp-admin/admin.php?page=embed-drive` ) ).text();
+	assert.ok( html.includes( 'embed_drive_oauth_start' ), 'sign-in appears once saved' );
+	assert.ok( html.includes( 'value="owner-client"' ) );
+	assert.ok( ! html.includes( 'owner-secret' ), 'secret is never printed' );
+	const { settings } = await test_( 'read_settings' );
+	assert.ok( settings.client_secret && ! settings.client_secret.includes( 'owner-secret' ) );
 } );
 
 const log = await ( await fetch( MOCK + '/__log' ) ).json();

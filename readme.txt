@@ -3,7 +3,7 @@ Tags: google drive, file browser, documents, download, embed
 Requires at least: 6.0
 Tested up to: 7.1
 Requires PHP: 8.0
-Stable tag: 0.1.0
+Stable tag: 0.2.0
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -34,14 +34,14 @@ Anyone who can see the page can see the files in its module. Embed Drive does no
 This plugin connects to these services:
 
 * **Google** (Google Drive API and Google sign-in), to read the Drive content you choose. Used only after you connect an account. [Terms](https://policies.google.com/terms), [Privacy](https://policies.google.com/privacy).
-* **A sign-in relay**, only if you configure one. It sees your authorization codes and tokens while passing them on. See the relay's owner for its terms.
+* **A sign-in relay**, only if you add one in wp-config.php. It sees your authorization codes and tokens while passing them on. See the relay's owner for its terms.
 * **GitHub** (api.github.com), to check for plugin updates. Sends no site data beyond an ordinary web request. [Terms](https://docs.github.com/site-policy/github-terms/github-terms-of-service), [Privacy](https://docs.github.com/site-policy/privacy-policies/github-general-privacy-statement).
 
 == Installation ==
 
 1. Download `embed-drive.zip` from the [latest release](https://github.com/mk-manishkandel/EmbedDriveToWordpress/releases/latest).
 2. In WordPress, go to Plugins > Add New > Upload Plugin, and upload it.
-3. Go to Embed Drive > Accounts & Settings and connect a Google account.
+3. Go to Embed Drive > Accounts & Settings, create your own free Google app using the steps shown there, and sign in. You only do this once per site.
 4. Add the Embed Drive block to a page, or build a shortcode under Embed Drive > Shortcode Builder.
 
 == Frequently Asked Questions ==
@@ -59,6 +59,11 @@ A Drive shortcut can point to a file outside the chosen folder, so shortcuts are
 File lists are cached for 5 minutes. Use Clear file cache in the settings to refresh sooner.
 
 == Changelog ==
+
+= 0.2.0 =
+* Each site owner now connects with their own Google app, with a step-by-step guide on the settings screen.
+* The relay field is removed from settings. A relay can still be set with the EMBED_DRIVE_RELAY_URL constant.
+* You now get the lost-access email if your Google app is deleted or its secret changes.
 
 = 0.1.0 =
 * First release.

@@ -95,7 +95,8 @@ final class Accounts {
 		$fresh = OAuth::refresh( $token['refresh_token'], (string) $account['via'] );
 		if ( is_wp_error( $fresh ) ) {
 			// Only a definite rejection counts as lost, so a brief outage doesn't alarm anyone.
-			if ( in_array( $fresh->get_error_code(), [ 'invalid_grant', 'unauthorized_client' ], true ) ) {
+			// The client errors mean the owner's Google app was deleted or its secret changed.
+			if ( in_array( $fresh->get_error_code(), [ 'invalid_grant', 'unauthorized_client', 'invalid_client', 'deleted_client' ], true ) ) {
 				self::mark_lost( $id );
 			}
 

@@ -1,4 +1,6 @@
-# Embed Drive sign-in relay
+# Embed Drive sign-in relay (optional)
+
+**Most people don't need this.** The plugin's normal setup is for each site owner to use their own Google app. The relay is for someone managing sites for others who wants one shared Google app.
 
 Google needs one fixed redirect URL and a client secret, which a plugin installed on many different sites can't provide. This single PHP file gives those sites a one-click "Sign in with Google" using your Google app.
 
@@ -15,7 +17,7 @@ You need HTTPS and PHP 8.0+ with cURL. A subfolder of an existing website is fin
 3. Create an **OAuth client ID** of type *Web application*. Add the public URL of the relay's `index.php` as an authorized redirect URI.
 4. Upload `index.php` and `config.example.php`. Copy `config.example.php` to `config.php` and fill it in. Generate `state_secret` with `openssl rand -hex 32`.
 5. Check that the relay's URL in a browser shows `Embed Drive sign-in relay.`
-6. In each WordPress site, enter that URL under **Embed Drive > Accounts & Settings > Advanced > Relay URL**. To set it for every install of your own build, define `EMBED_DRIVE_RELAY_URL` in `wp-config.php`.
+6. In each WordPress site's `wp-config.php`, add `define( 'EMBED_DRIVE_RELAY_URL', 'https://example.com/embed-drive-relay/index.php' );`.
 
 ## Google's limits
 
@@ -26,7 +28,7 @@ You need HTTPS and PHP 8.0+ with cURL. A subfolder of an existing website is fin
 
 Verification for restricted scopes requires a security assessment and may not be available for this kind of app. Check [Google's current rules](https://developers.google.com/workspace/drive/api/guides/api-specific-auth) before relying on it.
 
-If you run out, sites can still connect with their own Google app, under **Advanced** in the plugin settings. That path has no shared limit.
+If you run out, sites can still connect with their own Google app, from the plugin's settings screen. That path has no shared limit.
 
 ## How it stays safe
 

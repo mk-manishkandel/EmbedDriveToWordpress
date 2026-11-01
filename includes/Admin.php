@@ -58,7 +58,7 @@ final class Admin {
 	public static function settings_page(): void {
 		$settings = Settings::all();
 		$relay    = Settings::relay_url();
-		$locked   = defined( 'EMBED_DRIVE_RELAY_URL' );
+		$has_app  = Settings::has_own_app();
 		$start    = static fn( string $via ) => wp_nonce_url( admin_url( 'admin-post.php?action=embed_drive_oauth_start&via=' . $via ), 'embed_drive_oauth_start' );
 		?>
 		<div class="wrap embed-drive-admin">
@@ -74,7 +74,7 @@ final class Admin {
 						<tr>
 							<td><strong><?php echo esc_html( $account['name'] ); ?></strong><br><?php echo esc_html( $account['email'] ); ?></td>
 							<td><?php echo 'ok' === $account['status'] ? esc_html__( 'Connected', 'embed-drive' ) : '<strong class="embed-drive-lost">' . esc_html__( 'Access lost: sign in again', 'embed-drive' ) . '</strong>'; ?></td>
-							<td><?php echo 'own' === $account['via'] ? esc_html__( 'Your own Google app', 'embed-drive' ) : esc_html__( 'Sign-in relay', 'embed-drive' ); ?></td>
+							<td><?php echo 'own' === $account['via'] ? esc_html__( 'Your Google app', 'embed-drive' ) : esc_html__( 'Sign-in relay', 'embed-drive' ); ?></td>
 							<td>
 								<form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>" onsubmit="return confirm(this.dataset.confirm)" data-confirm="<?php esc_attr_e( 'Disconnect this account? Modules that use it will stop showing files.', 'embed-drive' ); ?>">
 									<input type="hidden" name="action" value="embed_drive_disconnect">
@@ -92,21 +92,61 @@ final class Admin {
 			<?php endif; ?>
 
 			<p class="embed-drive-connect">
-				<?php if ( '' !== $relay ) : ?>
-					<a class="button button-primary" href="<?php echo esc_url( $start( 'relay' ) ); ?>"><?php esc_html_e( 'Sign in with Google', 'embed-drive' ); ?></a>
+				<?php if ( $has_app ) : ?>
+					<a class="button button-primary" href="<?php echo esc_url( $start( 'own' ) ); ?>"><?php esc_html_e( 'Sign in with Google', 'embed-drive' ); ?></a>
 				<?php endif; ?>
-				<?php if ( Settings::has_own_app() ) : ?>
-					<a class="button" href="<?php echo esc_url( $start( 'own' ) ); ?>"><?php esc_html_e( 'Sign in with your own Google app', 'embed-drive' ); ?></a>
+				<?php if ( '' !== $relay ) : ?>
+					<a class="button" href="<?php echo esc_url( $start( 'relay' ) ); ?>"><?php esc_html_e( 'Sign in through the relay', 'embed-drive' ); ?></a>
 				<?php endif; ?>
 			</p>
-			<?php if ( '' === $relay && ! Settings::has_own_app() ) : ?>
-				<div class="notice notice-info inline"><p><?php esc_html_e( 'To connect an account, set up your own Google app or enter a sign-in relay under Advanced below.', 'embed-drive' ); ?></p></div>
+			<?php if ( ! $has_app && '' === $relay ) : ?>
+				<div class="notice notice-info inline"><p><?php esc_html_e( 'To connect your account, first create your own free Google app using the steps below, then sign in. You only do this once.', 'embed-drive' ); ?></p></div>
 			<?php endif; ?>
 			<p class="description"><?php esc_html_e( 'Embed Drive asks for read-only access. It cannot change or delete anything in your Drive.', 'embed-drive' ); ?></p>
 
 			<form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>">
 				<input type="hidden" name="action" value="embed_drive_save">
 				<?php wp_nonce_field( 'embed_drive_save' ); ?>
+
+				<details class="embed-drive-advanced" <?php echo $has_app ? '' : 'open'; ?>>
+					<summary><?php esc_html_e( 'Your Google app', 'embed-drive' ); ?></summary>
+					<p><?php esc_html_e( 'Your site talks to Google through an app you own, so your sign-in never passes through anyone else. It is free and takes about 10 minutes.', 'embed-drive' ); ?></p>
+					<ol>
+						<li>
+							<?php
+							printf(
+								/* translators: %s: link to the Google Cloud console */
+								esc_html__( 'Open the %s and create a project.', 'embed-drive' ),
+								'<a href="https://console.cloud.google.com/projectcreate" target="_blank" rel="noopener">' . esc_html__( 'Google Cloud console', 'embed-drive' ) . '</a>'
+							);
+							?>
+						</li>
+						<li>
+							<?php
+							printf(
+								/* translators: %s: link to the Google Drive API page */
+								esc_html__( 'Enable the %s for that project.', 'embed-drive' ),
+								'<a href="https://console.cloud.google.com/apis/library/drive.googleapis.com" target="_blank" rel="noopener">' . esc_html__( 'Google Drive API', 'embed-drive' ) . '</a>'
+							);
+							?>
+						</li>
+						<li><?php esc_html_e( 'Open the OAuth consent screen (Google Auth Platform) and fill in the app name and your email. Choose External, or Internal if your Google Workspace organisation will be the only one using it.', 'embed-drive' ); ?></li>
+						<li><?php esc_html_e( 'Under Data Access, add the scope below. For an External app, publish it under Audience: in Testing mode your sign-in expires after 7 days.', 'embed-drive' ); ?><br><code>https://www.googleapis.com/auth/drive.readonly</code></li>
+						<li><?php esc_html_e( 'Under Clients, create an OAuth client of type "Web application" and add this as an authorized redirect URI:', 'embed-drive' ); ?><br><code><?php echo esc_html( OAuth::callback_url() ); ?></code></li>
+						<li><?php esc_html_e( 'Paste its client ID and secret here and save. Then click Sign in with Google above.', 'embed-drive' ); ?></li>
+					</ol>
+					<p class="description"><?php esc_html_e( 'An External app shows "Google hasn\'t verified this app" when you sign in. As it is your own app, that is expected: choose Advanced, then continue to your app. Google allows up to 100 people to do this per app.', 'embed-drive' ); ?></p>
+					<table class="form-table" role="presentation">
+						<tr>
+							<th scope="row"><label for="ed-client-id"><?php esc_html_e( 'Client ID', 'embed-drive' ); ?></label></th>
+							<td><input id="ed-client-id" name="client_id" type="text" class="large-text" autocomplete="off" value="<?php echo esc_attr( $settings['client_id'] ); ?>"></td>
+						</tr>
+						<tr>
+							<th scope="row"><label for="ed-client-secret"><?php esc_html_e( 'Client secret', 'embed-drive' ); ?></label></th>
+							<td><input id="ed-client-secret" name="client_secret" type="password" class="large-text" autocomplete="new-password" placeholder="<?php echo '' !== $settings['client_secret'] ? esc_attr__( 'Saved. Leave empty to keep it.', 'embed-drive' ) : ''; ?>"></td>
+						</tr>
+					</table>
+				</details>
 
 				<h2><?php esc_html_e( 'Downloads', 'embed-drive' ); ?></h2>
 				<table class="form-table" role="presentation">
@@ -141,40 +181,6 @@ final class Admin {
 						<p class="description"><?php esc_html_e( 'Sent once if a Google account stops working. Leave empty to use the site admin email.', 'embed-drive' ); ?></p></td>
 					</tr>
 				</table>
-
-				<details class="embed-drive-advanced" <?php echo '' === $relay && ! Settings::has_own_app() ? 'open' : ''; ?>>
-					<summary><?php esc_html_e( 'Advanced: your own Google app and sign-in relay', 'embed-drive' ); ?></summary>
-
-					<h3><?php esc_html_e( 'Your own Google app', 'embed-drive' ); ?></h3>
-					<ol>
-						<li><?php esc_html_e( 'In the Google Cloud console, create a project and enable the Google Drive API.', 'embed-drive' ); ?></li>
-						<li><?php esc_html_e( 'Set up the OAuth consent screen, add the drive.readonly scope, and publish the app. In Testing mode, sign-ins expire after 7 days.', 'embed-drive' ); ?></li>
-						<li><?php esc_html_e( 'Create an OAuth client of type "Web application" with this redirect URI:', 'embed-drive' ); ?><br><code><?php echo esc_html( OAuth::callback_url() ); ?></code></li>
-						<li><?php esc_html_e( 'Paste its client ID and secret here, save, then sign in above.', 'embed-drive' ); ?></li>
-					</ol>
-					<table class="form-table" role="presentation">
-						<tr>
-							<th scope="row"><label for="ed-client-id"><?php esc_html_e( 'Client ID', 'embed-drive' ); ?></label></th>
-							<td><input id="ed-client-id" name="client_id" type="text" class="large-text" autocomplete="off" value="<?php echo esc_attr( $settings['client_id'] ); ?>"></td>
-						</tr>
-						<tr>
-							<th scope="row"><label for="ed-client-secret"><?php esc_html_e( 'Client secret', 'embed-drive' ); ?></label></th>
-							<td><input id="ed-client-secret" name="client_secret" type="password" class="large-text" autocomplete="new-password" placeholder="<?php echo '' !== $settings['client_secret'] ? esc_attr__( 'Saved. Leave empty to keep it.', 'embed-drive' ) : ''; ?>"></td>
-						</tr>
-					</table>
-
-					<h3><?php esc_html_e( 'Sign-in relay', 'embed-drive' ); ?></h3>
-					<p><?php esc_html_e( 'A relay gives one-click sign-in using a shared Google app. Sign-in and token refreshes pass through it, so only use a relay you trust. The script is in the plugin\'s GitHub repository.', 'embed-drive' ); ?></p>
-					<table class="form-table" role="presentation">
-						<tr>
-							<th scope="row"><label for="ed-relay"><?php esc_html_e( 'Relay URL', 'embed-drive' ); ?></label></th>
-							<td><input id="ed-relay" name="relay_url" type="url" class="large-text" value="<?php echo esc_attr( $locked ? $relay : $settings['relay_url'] ); ?>" <?php disabled( $locked ); ?>>
-							<?php if ( $locked ) : ?>
-								<p class="description"><?php esc_html_e( 'Set by EMBED_DRIVE_RELAY_URL in wp-config.php.', 'embed-drive' ); ?></p>
-							<?php endif; ?></td>
-						</tr>
-					</table>
-				</details>
 
 				<?php submit_button(); ?>
 			</form>
@@ -363,9 +369,6 @@ final class Admin {
 			'zip_max_files' => max( 1, min( 65000, absint( $_POST['zip_max_files'] ?? 200 ) ) ),
 			'notify_email'  => sanitize_email( wp_unslash( $_POST['notify_email'] ?? '' ) ),
 		];
-		if ( ! defined( 'EMBED_DRIVE_RELAY_URL' ) ) {
-			$values['relay_url'] = esc_url_raw( wp_unslash( $_POST['relay_url'] ?? '' ), [ 'https', 'http' ] );
-		}
 		// phpcs:enable
 		if ( '' !== $secret ) {
 			$values['client_secret'] = Crypto::encrypt( $secret );

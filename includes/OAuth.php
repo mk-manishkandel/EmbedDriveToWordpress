@@ -51,7 +51,7 @@ final class OAuth {
 
 		$via = isset( $_GET['via'] ) && 'own' === $_GET['via'] ? 'own' : 'relay';
 		if ( 'own' === $via ? ! Settings::has_own_app() : '' === Settings::relay_url() ) {
-			self::finish( 'error', __( 'This sign-in method is not configured.', 'embed-drive' ) );
+			self::finish( 'error', __( 'Add your Google app\'s client ID and secret first.', 'embed-drive' ) );
 		}
 
 		$state    = wp_generate_password( 32, false );

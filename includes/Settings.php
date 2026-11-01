@@ -14,7 +14,6 @@ final class Settings {
 	const OPTION = 'embed_drive_settings';
 
 	const DEFAULTS = [
-		'relay_url'      => '',
 		'client_id'      => '',
 		'client_secret'  => '', // Encrypted.
 		'log_enabled'    => true,
@@ -37,10 +36,11 @@ final class Settings {
 	}
 
 	/**
-	 * The relay used for one-click sign-in. A wp-config constant wins over the setting.
+	 * An optional sign-in relay, for a site owner who runs one. It is set in code rather than
+	 * in the settings screen, since sign-ins and tokens pass through whatever it points to.
 	 */
 	public static function relay_url(): string {
-		$url = defined( 'EMBED_DRIVE_RELAY_URL' ) ? (string) EMBED_DRIVE_RELAY_URL : (string) self::get( 'relay_url' );
+		$url = defined( 'EMBED_DRIVE_RELAY_URL' ) ? (string) EMBED_DRIVE_RELAY_URL : '';
 
 		return (string) apply_filters( 'embed_drive_relay_url', $url );
 	}

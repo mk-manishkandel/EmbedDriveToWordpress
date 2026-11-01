@@ -22,6 +22,7 @@ add_filter(
 	10,
 	2
 );
+add_filter( 'embed_drive_relay_url', static fn() => (string) get_option( 'embed_drive_test_relay', '' ) );
 add_filter( 'embed_drive_thumbnail_hosts', static fn() => [ '127.0.0.1' ] );
 add_filter( 'embed_drive_allow_http_thumbnails', '__return_true' );
 add_filter( 'embed_drive_cache_ttl', static fn() => 0 );
@@ -58,6 +59,12 @@ add_action(
 							);
 
 							return [ 'account' => $id ];
+						case 'relay':
+							update_option( 'embed_drive_test_relay', (string) $r->get_param( 'url' ) );
+
+							return [ 'ok' => true ];
+						case 'read_settings':
+							return [ 'settings' => EmbedDrive\Settings::all() ];
 						case 'settings':
 							EmbedDrive\Settings::update( (array) $r->get_param( 'values' ) );
 

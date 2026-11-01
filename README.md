@@ -18,23 +18,25 @@ Show Google Drive folders and files on your WordPress site. Open source, with no
 ## Quick start
 
 1. Upload `embed-drive.zip` under **Plugins > Add New > Upload Plugin**, then activate it.
-2. Connect an account under **Embed Drive > Accounts & Settings**. See [Connecting to Google](#connecting-to-google).
+2. Create your Google app and sign in under **Embed Drive > Accounts & Settings**. See [Connecting to Google](#connecting-to-google).
 3. Add the **Embed Drive** block to a page, or create a shortcode under **Embed Drive > Shortcode Builder**.
 
 Requires WordPress 6.0+ and PHP 8.0+.
 
 ## Connecting to Google
 
-There are two ways to connect, and both need a Google app of some kind:
+Each site owner connects with **their own Google app**. Google requires an app for any Drive sign-in. Using your own means your sign-in and tokens go only between your site and Google, and no one has to host anything. It's free and takes about 10 minutes, once per site.
 
-| | Sign-in relay | Your own Google app |
-|---|---|---|
-| **Setup per site** | One click | About 10 minutes in Google Cloud |
-| **Needs hosting** | Someone runs the [relay](relay/README.md) | No |
-| **Google's 100-user limit** | Shared by every site on the relay | Your own |
-| **Tokens pass through** | The relay | Only your site |
+1. In the [Google Cloud console](https://console.cloud.google.com/projectcreate), create a project.
+2. Enable the [Google Drive API](https://console.cloud.google.com/apis/library/drive.googleapis.com).
+3. Open the OAuth consent screen (Google Auth Platform) and fill in the app name and your email. Choose **External**, or **Internal** if your Google Workspace organisation will be the only one using it.
+4. Under **Data Access**, add the `https://www.googleapis.com/auth/drive.readonly` scope. For an External app, **publish it** under **Audience**: in Testing mode your sign-in expires after 7 days.
+5. Under **Clients**, create a **Web application** client. Add the redirect URI shown on the plugin's settings screen.
+6. Paste the client ID and secret into **Embed Drive > Accounts & Settings**, save, and click **Sign in with Google**.
 
-Google limits unverified apps that read Drive to 100 new users per project, ever, and shows those users a warning. So a single shared relay suits your own sites better than a large public audience. Anyone can use the own-app path, with steps shown in the plugin under **Advanced**.
+An External app shows "Google hasn't verified this app" at sign-in. That's expected for your own app: choose **Advanced**, then continue to your app. Google allows up to 100 people to do this per app, which is plenty for one site's owner.
+
+Someone hosting sites for others can run the optional [sign-in relay](relay/README.md) instead, enabled with `EMBED_DRIVE_RELAY_URL` in `wp-config.php`.
 
 ## Shortcode
 
