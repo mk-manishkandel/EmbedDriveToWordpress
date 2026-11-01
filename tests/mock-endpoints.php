@@ -112,6 +112,50 @@ add_filter(
 	3
 );
 
+// Which modules render while a real page is being drawn, beside a post by a low-level author.
+add_action(
+	'template_redirect',
+	static function () {
+		if ( empty( $_GET['ed_context_probe'] ) ) {
+			return;
+		}
+		$code    = '[embed_drive mode="files" folder="public"]';
+		$author  = wp_insert_user( [ 'user_login' => 'p' . wp_rand(), 'user_pass' => wp_generate_password(), 'role' => 'author' ] );
+		$make    = static fn( $fields = [] ) => get_post( wp_insert_post( $fields + [ 'post_author' => $author, 'post_title' => 'p', 'post_status' => 'publish', 'post_content' => 'plain words' ] ) );
+		$shown   = static fn( $html ) => false !== strpos( (string) $html, 'data-embed-drive' );
+		$on      = static function ( $post, callable $draw ) use ( $shown ) {
+			$GLOBALS['post'] = $post;
+			$html            = $draw();
+			unset( $GLOBALS['post'] );
+
+			return $shown( $html );
+		};
+		$plain   = $make();
+		$meta    = $make();
+		update_post_meta( $meta->ID, '_builder_layout', [ 'html' => $code ] );
+		$own     = $make( [ 'post_content' => $code ] );
+		$block   = $make( [ 'post_content' => '<!-- wp:embed-drive/module {"folder":"public"} /-->' ] );
+		add_filter( 'comment_text', 'do_shortcode' );
+		$admin   = get_post( wp_insert_post( [ 'post_author' => 1, 'post_title' => 'a', 'post_status' => 'publish', 'post_content' => 'x' ] ) );
+
+		wp_send_json(
+			[
+				'template_shortcode'  => $on( $plain, static fn() => do_shortcode( $code ) ),
+				'template_block'      => $on( $plain, static fn() => do_blocks( '<!-- wp:embed-drive/module {"folder":"public"} /-->' ) ),
+				'content_filter'      => $on( $plain, static fn() => apply_filters( 'the_content', $code ) ),
+				'own_content'         => $on( $own, static fn() => do_shortcode( $own->post_content ) ),
+				'own_block'           => $on( $block, static fn() => do_blocks( $block->post_content ) ),
+				'in_custom_field'     => $on( $meta, static fn() => do_shortcode( $code ) ),
+				'in_excerpt'          => $on( $make( [ 'post_excerpt' => $code ] ), static fn() => do_shortcode( $code ) ),
+				'synced_pattern'      => $on( $make( [ 'post_content' => '<!-- wp:block {"ref":1} /-->' ] ), static fn() => do_shortcode( $code ) ),
+				'comment_low_author'  => $on( $plain, static fn() => apply_filters( 'comment_text', $code, null, [] ) ),
+				'comment_admin_post'  => $on( $admin, static fn() => apply_filters( 'comment_text', $code, null, [] ) ),
+				'admin_post_content'  => $on( $admin, static fn() => apply_filters( 'the_content', $code ) ),
+			]
+		);
+	}
+);
+
 // Test-only endpoint to set up state and run PHP paths that have no HTTP route.
 add_action(
 	'rest_api_init',
@@ -238,6 +282,9 @@ add_action(
 							wp_set_current_user( $user );
 							$request = new WP_REST_Request( 'GET', '/wp/v2/block-renderer/embed-drive/module' );
 							$request->set_param( 'context', 'edit' );
+							if ( $r->get_param( 'own_post' ) ) {
+								$request->set_param( 'post_id', wp_insert_post( [ 'post_author' => $user, 'post_title' => 'mine', 'post_content' => 'nothing here' ] ) );
+							}
 							$request->set_param( 'attributes', [ 'mode' => 'files', 'folder' => 'secret' ] );
 							$response = rest_do_request( $request );
 							$html     = (string) ( $response->get_data()['rendered'] ?? '' );

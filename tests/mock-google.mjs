@@ -25,6 +25,7 @@ const files = {
 	'pub-word': [ 'letter.docx', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', 'public', fixture( 'letter.docx' ) ],
 	'pub-sheet': [ 'numbers.xlsx', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', 'public', fixture( 'numbers.xlsx' ) ],
 	'pub-real': [ 'real.pdf', 'application/pdf', 'public', fixture( 'real.pdf' ) ],
+	'pub-jpx': [ 'jpeg2000.pdf', 'application/pdf', 'public', fixture( 'jpx.pdf' ) ],
 	'pub-slides': [ 'deck.pptx', 'application/vnd.openxmlformats-officedocument.presentationml.presentation', 'public', body( 'PK-slides' ) ],
 	'pub-shared': [ 'shared.pptx', 'application/vnd.openxmlformats-officedocument.presentationml.presentation', 'public', body( 'PK-shared' ) ],
 	'pub-bad': [ 'broken.docx', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', 'public', body( 'not a real document' ) ],

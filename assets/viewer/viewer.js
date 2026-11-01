@@ -12,7 +12,8 @@
 	// The static policy can't name this folder, as it differs per site. Policies only ever add up.
 	const policy = document.createElement( 'meta' );
 	policy.httpEquiv = 'Content-Security-Policy';
-	policy.content = `script-src ${ new URL( 'lib/', location.href ).href }`;
+	// WebAssembly is how PDF.js decodes JPEG 2000 images. It runs only code already in that folder.
+	policy.content = `script-src ${ new URL( 'lib/', location.href ).href } 'wasm-unsafe-eval'`;
 	document.head.append( policy );
 
 	const MAX_ROWS = 2000;

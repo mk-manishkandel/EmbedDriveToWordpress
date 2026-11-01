@@ -3,7 +3,7 @@ Tags: google drive, file browser, documents, download, embed
 Requires at least: 6.0
 Tested up to: 7.1
 Requires PHP: 8.0
-Stable tag: 0.3.7
+Stable tag: 0.3.8
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -60,6 +60,12 @@ A Drive shortcut can point to a file outside the chosen folder, so shortcuts are
 File lists are cached for 5 minutes. Use Clear file cache in the settings to refresh sooner.
 
 == Changelog ==
+
+= 0.3.8 =
+* Security: updated PDF.js to 4.10.38, which fixes a flaw that a malicious PDF could use to run code. Previews were already sandboxed against it.
+* Updated the Word preview library to 0.4.1.
+* Fixed: a module in a theme template disappeared on posts written by an Author or Contributor.
+* Shortcodes in comments can no longer show Drive files, even on sites where another plugin turns on shortcodes in comments.
 
 = 0.3.7 =
 * Fixed: a module in a widget disappeared on posts written by an Author or Contributor.

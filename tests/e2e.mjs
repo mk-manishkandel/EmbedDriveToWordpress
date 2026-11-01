@@ -643,6 +643,29 @@ await it( 'a widget still shows beside a post by a low-level author, but not tha
 	assert.deepEqual( await test_( 'widget_probe' ), { in_widget: true, post_in_widget: false, in_author_content: false } );
 } );
 
+await it( 'SECURITY: a theme template can show a module beside a low-level author\'s post, but that author cannot', async () => {
+	const seen = await ( await fetch( `${ SITE }/?ed_context_probe=1` ) ).json();
+	assert.deepEqual( seen, {
+		template_shortcode: true,
+		template_block: true,
+		content_filter: false,
+		own_content: false,
+		own_block: false,
+		in_custom_field: false,
+		in_excerpt: false,
+		synced_pattern: false,
+		comment_low_author: false,
+		comment_admin_post: false,
+		admin_post_content: true,
+	} );
+} );
+
+await it( 'SECURITY: the block preview of an author\'s own post gives them no link', async () => {
+	for ( const role of [ 'contributor', 'author' ] ) {
+		assert.equal( ( await test_( 'attack_contributor', { role, own_post: true } ) ).token, null, role );
+	}
+} );
+
 await it( 'odd filters on the activity screen do not break it', async () => {
 	for ( const query of [ 'event[]=x', 'paged[]=1', 'event=nope', 'paged=-5' ] ) {
 		const r = await session( `${ SITE }/wp-admin/admin.php?page=embed-drive-activity&${ query }` );

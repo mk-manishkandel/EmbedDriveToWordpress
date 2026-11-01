@@ -292,21 +292,40 @@ final class Modules {
 	 * Widgets and templates render with no post, but so do the block preview and similar requests,
 	 * where the text comes from whoever is asking. That person must then be allowed to embed.
 	 *
-	 * A widget belongs to whoever manages the site, not to the author of the post it appears beside,
-	 * unless the widget is showing that post's own content.
+	 * A widget or theme template belongs to whoever manages the site, not to the author of the post
+	 * it appears beside. It is only trusted beside a low-level author's post when the page itself is
+	 * being drawn, nothing in that post mentions a module, and it isn't that post's own content.
 	 */
 	private static function author_may_embed(): bool {
-		$post = get_post();
-		if ( self::$sidebars > 0 && ! doing_filter( 'the_content' ) ) {
+		$post      = get_post();
+		$requested = is_admin() || wp_doing_ajax() || ( defined( 'REST_REQUEST' ) && REST_REQUEST );
+		$content   = doing_filter( 'the_content' ) || doing_filter( 'get_the_excerpt' );
+		if ( doing_filter( 'comment_text' ) ) {
+			$allowed = false; // Anyone can write a comment, so a site that runs shortcodes in them must not expose Drive.
+		} elseif ( self::$sidebars > 0 && ! $content ) {
 			$allowed = true;
-		} elseif ( $post ) {
-			$allowed = user_can( (int) $post->post_author, self::embed_capability() );
+		} elseif ( ! $post ) {
+			$allowed = ! $requested || self::current_user_can_embed();
+		} elseif ( user_can( (int) $post->post_author, self::embed_capability() ) ) {
+			$allowed = true;
 		} else {
-			$requested = is_admin() || wp_doing_ajax() || ( defined( 'REST_REQUEST' ) && REST_REQUEST );
-			$allowed   = ! $requested || self::current_user_can_embed();
+			$allowed = ! $requested && ! $content && ! self::post_mentions_module( $post );
 		}
 
 		return (bool) apply_filters( 'embed_drive_author_may_embed', $allowed, $post );
+	}
+
+	/**
+	 * Whether a post could be the source of a module: directly, through a page builder that keeps
+	 * its layout in custom fields, or through a synced pattern its author also controls.
+	 */
+	private static function post_mentions_module( \WP_Post $post ): bool {
+		$text = $post->post_content . "\n" . $post->post_excerpt;
+		foreach ( (array) get_post_meta( $post->ID ) as $values ) {
+			$text .= "\n" . implode( "\n", array_map( 'strval', (array) $values ) );
+		}
+
+		return false !== stripos( $text, 'embed_drive' ) || false !== stripos( $text, 'embed-drive' ) || false !== stripos( $text, 'wp:block' );
 	}
 
 	private static function truthy( $value ): bool {
