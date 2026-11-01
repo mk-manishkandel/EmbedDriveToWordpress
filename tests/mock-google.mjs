@@ -20,6 +20,8 @@ const files = {
 	public: [ 'Public Folder', FOLDER, 'root-id' ],
 	'pub-pdf': [ 'guide.pdf', 'application/pdf', 'public', body( '%PDF-guide' ) ],
 	'pub-img': [ 'photo.png', 'image/png', 'public', png ],
+	'pub-word': [ 'letter.docx', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', 'public', body( 'PK-word' ) ],
+	'pub-csv': [ 'table.csv', 'text/csv', 'public', body( 'a,b' ) ],
 	'pub-big': [ 'big.bin', 'application/octet-stream', 'public', blob ],
 	'pub-html': [ 'evil.html', 'text/html', 'public', body( '<script>alert(1)</script>' ) ],
 	'pub-svg': [ 'evil.svg', 'image/svg+xml', 'public', body( '<svg onload="alert(1)"/>' ) ],
@@ -32,6 +34,8 @@ const files = {
 	'pub-broken': [ 'broken.txt', 'text/plain', 'public', 'FAIL' ],
 	sub: [ 'Sub Folder', FOLDER, 'public' ],
 	'sub-file': [ "O'Brien notes.txt", 'text/plain', 'sub', body( 'nested needle content' ) ],
+	many: [ 'Many Files', FOLDER, 'root-id' ],
+	...Object.fromEntries( Array.from( { length: 130 }, ( _, i ) => [ `many-${ i }`, [ `item ${ String( i ).padStart( 3, '0' ) }.txt`, 'text/plain', 'many', body( 'x' ) ] ] ) ),
 	shortcut: [ 'link-to-secret', 'application/vnd.google-apps.shortcut', 'public' ],
 };
 

@@ -73,8 +73,8 @@
 						label: __( 'Layout', 'embed-drive' ),
 						value: a.view,
 						options: [
-							{ value: 'list', label: __( 'List', 'embed-drive' ) },
 							{ value: 'grid', label: __( 'Grid', 'embed-drive' ) },
+							{ value: 'list', label: __( 'List', 'embed-drive' ) },
 						],
 						onChange: ( view ) => set( { view } ),
 					} ),

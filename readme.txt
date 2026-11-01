@@ -3,7 +3,7 @@ Tags: google drive, file browser, documents, download, embed
 Requires at least: 6.0
 Tested up to: 7.1
 Requires PHP: 8.0
-Stable tag: 0.2.1
+Stable tag: 0.3.0
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -35,6 +35,7 @@ This plugin connects to these services:
 
 * **Google** (Google Drive API and Google sign-in), to read the Drive content you choose. Used only after you connect an account. [Terms](https://policies.google.com/terms), [Privacy](https://policies.google.com/privacy).
 * **A sign-in relay**, only if you add one in wp-config.php. It sees your authorization codes and tokens while passing them on. See the relay's owner for its terms.
+* **Google's document viewer** (docs.google.com), in the visitor's browser, to preview Office-style files and PDFs on devices that can't show them. Google fetches the file from your site using a link limited to that module's folder. Your site must be publicly reachable for this to work.
 * **GitHub** (api.github.com and github.com), to check for plugin updates. Sends no site data beyond an ordinary web request. [Terms](https://docs.github.com/site-policy/github-terms/github-terms-of-service), [Privacy](https://docs.github.com/site-policy/privacy-policies/github-general-privacy-statement).
 
 == Installation ==
@@ -59,6 +60,14 @@ A Drive shortcut can point to a file outside the chosen folder, so shortcuts are
 File lists are cached for 5 minutes. Use Clear file cache in the settings to refresh sooner.
 
 == Changelog ==
+
+= 0.3.0 =
+* New front-end design: toolbar with icon buttons, folder and thumbnail cards, placeholders while loading, smooth transitions. Grid is now the default layout.
+* Full-screen preview that moves between files with arrows, keyboard or swipe.
+* Word, Excel, PowerPoint and similar files now preview on the page, through Google's document viewer. So do PDFs on phones. Other files with a Google thumbnail show a large picture.
+* CSV and other text files show on the page instead of downloading.
+* Load more no longer repeats files when a page cache or CDN replays an earlier answer.
+* Modules with downloads turned off no longer hand out files through the preview link.
 
 = 0.2.1 =
 * Check again under Dashboard > Updates now really asks GitHub, instead of reusing a saved answer.

@@ -88,13 +88,13 @@ final class Rest {
 			end( $path )['id'],
 			(string) $request->get_param( 'sort' ),
 			(string) $request->get_param( 'order' ),
-			(string) $request->get_param( 'page' )
+			(string) $request->get_param( 'cursor' )
 		);
 		if ( is_wp_error( $page ) ) {
 			return self::visitor_error( $page );
 		}
 
-		return [
+		return self::uncached( [
 			'breadcrumbs' => array_map(
 				static fn( $crumb ) => [
 					'id'   => $crumb['id'],
@@ -104,7 +104,18 @@ final class Rest {
 			),
 			'items'       => array_map( static fn( $file ) => self::item( $file, $module ), (array) ( $page['files'] ?? [] ) ),
 			'next'        => (string) ( $page['nextPageToken'] ?? '' ),
-		];
+		] );
+	}
+
+	/**
+	 * Listings are already cached here, per page. A page cache or CDN in front of the site could
+	 * otherwise answer every request for the next page with the first one.
+	 */
+	private static function uncached( array $data ): WP_REST_Response {
+		$response = new WP_REST_Response( $data );
+		$response->header( 'Cache-Control', 'no-store' );
+
+		return $response;
 	}
 
 	public static function search( WP_REST_Request $request ) {
@@ -129,10 +140,10 @@ final class Rest {
 		}
 		ActivityLog::record( 'search', $module['a'], '', $term );
 
-		return [
+		return self::uncached( [
 			'items'     => array_map( static fn( $file ) => self::item( $file, $module ), $result['files'] ),
 			'truncated' => $result['truncated'],
-		];
+		] );
 	}
 
 	public static function file( WP_REST_Request $request ) {
@@ -140,8 +151,10 @@ final class Rest {
 		if ( is_wp_error( $module ) ) {
 			return $module;
 		}
-		$inline = 'inline' === $request->get_param( 'disp' );
-		if ( $inline ? empty( $module['p'] ) : empty( $module['d'] ) ) {
+		$disposition = (string) $request->get_param( 'disp' );
+		$inline      = 'inline' === $disposition;
+		$viewer      = 'viewer' === $disposition;
+		if ( $inline || $viewer ? empty( $module['p'] ) : empty( $module['d'] ) ) {
 			return self::denied();
 		}
 
@@ -149,8 +162,13 @@ final class Rest {
 		if ( is_wp_error( $file ) ) {
 			return $file;
 		}
-		if ( ! FileTypes::is_downloadable( (string) $file['mimeType'] ) ) {
+		$mime = (string) $file['mimeType'];
+		if ( ! FileTypes::is_downloadable( $mime ) ) {
 			return new WP_Error( 'unsupported', __( 'This kind of Google file cannot be downloaded.', 'embed-drive' ), [ 'status' => 415 ] );
+		}
+		// Previewing must not become a way around a module's download setting.
+		if ( empty( $module['d'] ) && ( $viewer ? 'viewer' !== FileTypes::preview_kind( $mime ) : ( $inline && ! FileTypes::can_inline( $mime ) ) ) ) {
+			return self::denied();
 		}
 
 		$range = isset( $_SERVER['HTTP_RANGE'] ) ? trim( sanitize_text_field( wp_unslash( $_SERVER['HTTP_RANGE'] ) ) ) : '';
@@ -160,12 +178,13 @@ final class Rest {
 			$file,
 			$inline,
 			$range,
-			static function () use ( $range, $inline, $module, $file ) {
+			static function () use ( $range, $inline, $viewer, $module, $file ) {
 				// Video players send many range requests per view; count only the one from the start.
 				if ( '' === $range || 0 === strpos( $range, 'bytes=0-' ) ) {
-					ActivityLog::record( $inline ? 'preview' : 'download', $module['a'], $file['id'], $file['name'] );
+					ActivityLog::record( $inline || $viewer ? 'preview' : 'download', $module['a'], $file['id'], $file['name'] );
 				}
-			}
+			},
+			$viewer
 		);
 
 		return self::visitor_error( $error );
@@ -199,8 +218,9 @@ final class Rest {
 		if ( is_wp_error( $token ) ) {
 			return self::visitor_error( $token );
 		}
+		// Google's link asks for a small image, too soft for a thumbnail card.
 		$response = wp_remote_get(
-			$link,
+			(string) preg_replace( '/=s\d+$/', $request->get_param( 'large' ) ? '=s1600' : '=s480', $link ),
 			[
 				'timeout'     => 15,
 				'redirection' => 2,
@@ -325,6 +345,15 @@ final class Rest {
 		];
 	}
 
+	/**
+	 * Google's picture of the file is the last resort before offering only a download.
+	 */
+	private static function preview_for( array $file ): string {
+		$kind = FileTypes::preview_kind( (string) $file['mimeType'] );
+
+		return 'none' === $kind && ! empty( $file['thumbnailLink'] ) ? 'thumb' : $kind;
+	}
+
 	private static function item( array $file, array $module ): array {
 		$mime      = (string) $file['mimeType'];
 		$is_folder = Drive::is_folder( $file );
@@ -337,7 +366,7 @@ final class Rest {
 			'size'     => isset( $file['size'] ) ? (int) $file['size'] : null,
 			'modified' => (string) ( $file['modifiedTime'] ?? '' ),
 			'thumb'    => ! $is_folder && ! empty( $file['thumbnailLink'] ),
-			'preview'  => ( ! $is_folder && ! empty( $module['p'] ) ) ? FileTypes::preview_kind( $mime ) : 'none',
+			'preview'  => ( ! $is_folder && ! empty( $module['p'] ) ) ? self::preview_for( $file ) : 'none',
 			'download' => ! $is_folder && ! empty( $module['d'] ) && FileTypes::is_downloadable( $mime ),
 		];
 	}

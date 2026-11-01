@@ -346,6 +346,40 @@ await it( 'lost access: marked once, emailed once, visitors see a neutral error'
 	assert.equal( restored.accounts[ account ].status, 'ok', 'recovers by itself' );
 } );
 
+await it( 'Office files reach the viewer typed, but never render on this site', async () => {
+	const t = tokenFrom( await render( '[embed_drive mode="files" folder="public"]' ) );
+	const r = await get( 'file', { m: t.token, id: 'pub-word', disp: 'viewer' } );
+	assert.equal( r.status, 200 );
+	assert.match( r.headers.get( 'content-type' ), /wordprocessingml/ );
+	assert.match( r.headers.get( 'content-disposition' ), /^attachment/ );
+	assert.match( r.headers.get( 'content-security-policy' ), /sandbox/ );
+} );
+
+await it( 'SECURITY: the viewer link only serves viewer file types when downloads are off', async () => {
+	const t = tokenFrom( await render( '[embed_drive mode="files" folder="public" download="no"]' ) );
+	assert.equal( ( await get( 'file', { m: t.token, id: 'pub-word', disp: 'viewer' } ) ).status, 200 );
+	assert.equal( ( await get( 'file', { m: t.token, id: 'pub-big', disp: 'viewer' } ) ).status, 404 );
+	assert.equal( ( await get( 'file', { m: t.token, id: 'pub-big', disp: 'inline' } ) ).status, 404 );
+} );
+
+await it( 'CSV shows as text instead of downloading', async () => {
+	const t = tokenFrom( await render( '[embed_drive mode="files" folder="public"]' ) );
+	const r = await get( 'file', { m: t.token, id: 'pub-csv', disp: 'inline' } );
+	assert.match( r.headers.get( 'content-type' ), /^text\/plain/ );
+	assert.match( r.headers.get( 'content-disposition' ), /^inline/ );
+} );
+
+await it( 'listing pages move forward, and caches are told not to keep them', async () => {
+	const t = tokenFrom( await render( '[embed_drive mode="files" folder="many"]' ) );
+	const first = await get( 'list', { m: t.token } );
+	assert.equal( first.headers.get( 'cache-control' ), 'no-store' );
+	const one = await first.json();
+	assert.equal( one.items.length, 100 );
+	const two = await ( await get( 'list', { m: t.token, cursor: one.next } ) ).json();
+	assert.equal( two.items.length, 30 );
+	assert.notEqual( two.items[ 0 ].id, one.items[ 0 ].id );
+} );
+
 await it( 'updater offers a newer GitHub release', async () => {
 	await test_( 'seed_release', {
 		release: { version: '9.9.9', url: 'https://example.test/r', package: 'https://example.test/embed-drive.zip', notes: 'n' },

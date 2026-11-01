@@ -39,7 +39,19 @@ final class Modules {
 					'preview'   => __( 'Preview', 'embed-drive' ),
 					'close'     => __( 'Close', 'embed-drive' ),
 					'more'      => __( 'Load more', 'embed-drive' ),
-					'zip'       => __( 'Download selected as ZIP', 'embed-drive' ),
+					'home'      => __( 'Go back to the start folder', 'embed-drive' ),
+					'refresh'   => __( 'Refresh', 'embed-drive' ),
+					'actions'   => __( 'More actions', 'embed-drive' ),
+					'results'   => __( 'Search results', 'embed-drive' ),
+					'ascending' => __( 'Ascending', 'embed-drive' ),
+					'descending' => __( 'Descending', 'embed-drive' ),
+					'selectAll' => __( 'Select all', 'embed-drive' ),
+					'selectNone' => __( 'Deselect all', 'embed-drive' ),
+					'top'       => __( 'Scroll to top', 'embed-drive' ),
+					'previous'  => __( 'Previous file', 'embed-drive' ),
+					'next'      => __( 'Next file', 'embed-drive' ),
+					'viewerTip' => __( 'Shown with Google\'s document viewer. If it stays blank, use the download button.', 'embed-drive' ),
+					'zip'       => __( 'Download selected', 'embed-drive' ),
 					'preparing' => __( 'Preparing ZIP…', 'embed-drive' ),
 					'select'    => __( 'Select', 'embed-drive' ),
 					'crumbs'    => __( 'Folder path', 'embed-drive' ),
@@ -107,7 +119,7 @@ final class Modules {
 				'folder'   => '',
 				'file'     => '',
 				'account'  => '',
-				'view'     => 'list',
+				'view'     => 'grid',
 				'sort'     => 'name',
 				'order'    => 'asc',
 				'download' => null,
@@ -169,7 +181,7 @@ final class Modules {
 		$config = [
 			'token'    => $token,
 			'mode'     => $mode,
-			'view'     => 'grid' === $a['view'] ? 'grid' : 'list',
+			'view'     => 'list' === $a['view'] ? 'list' : 'grid',
 			'sort'     => in_array( $a['sort'], array_keys( Drive::SORTS ), true ) ? $a['sort'] : 'name',
 			'order'    => 'desc' === $a['order'] ? 'desc' : 'asc',
 			'search'   => 'search' === $mode || self::truthy( $a['search'] ),
@@ -216,6 +228,9 @@ final class Modules {
 				break;
 			case 'audio':
 				$body = sprintf( '<audio src="%s" controls preload="metadata" aria-label="%s"></audio>', $inline, esc_attr( $name ) );
+				break;
+			case 'viewer':
+				$body = sprintf( '<iframe src="%s" title="%s" height="%d" loading="lazy"></iframe>', esc_url( add_query_arg( [ 'embedded' => 'true', 'url' => rawurlencode( Rest::file_url( $token, $id, 'viewer' ) ) ], 'https://docs.google.com/viewer' ) ), esc_attr( $name ), $height );
 				break;
 			case 'pdf':
 			case 'text':

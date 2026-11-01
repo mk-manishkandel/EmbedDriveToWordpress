@@ -39,8 +39,34 @@ final class FileTypes {
 		'audio/aac'       => 'audio',
 		'audio/mp4'       => 'audio',
 		'audio/flac'      => 'audio',
+		'video/quicktime' => 'video',
+		'video/x-m4v'     => 'video',
+		'audio/mp3'       => 'audio',
+		'audio/x-m4a'     => 'audio',
+		'audio/x-flac'    => 'audio',
 		'text/plain'      => 'text',
 		'text/csv'        => 'text',
+		'text/markdown'   => 'text',
+		'application/json' => 'text',
+	];
+
+	/** Browsers can't show these, so Google's document viewer does. They reach it only as attachments. */
+	const VIEWER = [
+		'application/msword',
+		'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+		'application/vnd.ms-excel',
+		'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+		'application/vnd.ms-powerpoint',
+		'application/vnd.openxmlformats-officedocument.presentationml.presentation',
+		'application/vnd.oasis.opendocument.text',
+		'application/vnd.oasis.opendocument.spreadsheet',
+		'application/vnd.oasis.opendocument.presentation',
+		'application/rtf',
+		'text/rtf',
+		'image/tiff',
+		'image/svg+xml',
+		'image/vnd.adobe.photoshop',
+		'application/vnd.ms-xpsdocument',
 	];
 
 	public static function is_native( string $mime ): bool {
@@ -55,14 +81,21 @@ final class FileTypes {
 	}
 
 	/**
-	 * @return string image, pdf, video, audio, text or none.
+	 * @return string image, pdf, video, audio, text, viewer or none.
 	 */
 	public static function preview_kind( string $mime ): string {
 		if ( self::is_native( $mime ) ) {
 			return 'pdf'; // Exported to PDF for viewing.
 		}
 
-		return self::INLINE[ $mime ] ?? 'none';
+		return self::INLINE[ $mime ] ?? ( in_array( $mime, self::VIEWER, true ) ? 'viewer' : 'none' );
+	}
+
+	/**
+	 * Whether a browser may show this file directly, on this site's origin.
+	 */
+	public static function can_inline( string $mime ): bool {
+		return self::is_native( $mime ) || isset( self::INLINE[ $mime ] );
 	}
 
 	/**
@@ -72,7 +105,10 @@ final class FileTypes {
 	 */
 	public static function delivery( string $mime, bool $inline ): array {
 		if ( ! self::is_native( $mime ) ) {
-			return [ 'export' => null, 'mime' => $mime, 'ext' => '' ];
+			// Browsers download some text types even when told to show them.
+			$shown = $inline && 'text' === self::preview_kind( $mime ) ? 'text/plain; charset=utf-8' : $mime;
+
+			return [ 'export' => null, 'mime' => $shown, 'ext' => '' ];
 		}
 		[ $export, $ext ] = $inline ? [ 'application/pdf', 'pdf' ] : self::EXPORTS[ $mime ];
 

@@ -54,7 +54,7 @@ Someone hosting sites for others can run the optional [sign-in relay](relay/READ
 | `folder` | Drive folder ID, or `root` for My Drive | | `files`, `search` |
 | `file` | Drive file ID | | `embed`, `button`, `link` |
 | `account` | Account ID, for multi-account sites | First account | All |
-| `view` | `list`, `grid` | `list` | `files` |
+| `view` | `grid`, `list` | `grid` | `files` |
 | `sort` | `name`, `modified`, `size` | `name` | `files` |
 | `order` | `asc`, `desc` | `asc` | `files` |
 | `download` | `yes`, `no` | `yes` (`no` for `embed`) | `files`, `search`, `embed` |

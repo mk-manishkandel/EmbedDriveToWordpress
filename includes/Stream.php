@@ -157,11 +157,12 @@ final class Stream {
 	 * Send a file as the whole response. Exits on success; returns only if nothing was sent yet.
 	 *
 	 * @param callable $on_commit Called once Google has accepted the request and bytes will flow.
+	 * @param bool     $typed     Name the real file type on an attachment, for Google's viewer to read.
 	 * @return WP_Error
 	 */
-	public static function send_file( string $account, array $file, bool $inline, string $range, callable $on_commit ): WP_Error {
+	public static function send_file( string $account, array $file, bool $inline, string $range, callable $on_commit, bool $typed = false ): WP_Error {
 		$mime     = (string) $file['mimeType'];
-		$inline   = $inline && 'none' !== FileTypes::preview_kind( $mime );
+		$inline   = $inline && FileTypes::can_inline( $mime );
 		$delivery = FileTypes::delivery( $mime, $inline );
 		$name     = FileTypes::filename( (string) $file['name'], $delivery['ext'] );
 
@@ -178,7 +179,7 @@ final class Stream {
 			$file,
 			$inline,
 			$range,
-			static function ( int $status, array $headers ) use ( &$committed, &$upstream, $inline, $delivery, $name, $file, $on_commit ) {
+			static function ( int $status, array $headers ) use ( &$committed, &$upstream, $inline, $delivery, $name, $file, $on_commit, $typed ) {
 				$upstream = $status;
 				if ( $status < 200 || $status >= 300 ) {
 					return;
@@ -187,7 +188,7 @@ final class Stream {
 				$on_commit();
 				status_header( $status );
 				self::security_headers( $inline, FileTypes::preview_kind( (string) $file['mimeType'] ) );
-				header( 'Content-Type: ' . ( $inline ? $delivery['mime'] : 'application/octet-stream' ) );
+				header( 'Content-Type: ' . ( $inline || $typed ? $delivery['mime'] : 'application/octet-stream' ) );
 				header( self::disposition( $inline ? 'inline' : 'attachment', $name ) );
 				if ( null === $delivery['export'] ) {
 					header( 'Accept-Ranges: bytes' );

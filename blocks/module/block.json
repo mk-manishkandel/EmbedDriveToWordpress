@@ -15,7 +15,7 @@
 		"folder": { "type": "string", "default": "" },
 		"file": { "type": "string", "default": "" },
 		"targetName": { "type": "string", "default": "" },
-		"view": { "type": "string", "default": "list" },
+		"view": { "type": "string", "default": "grid" },
 		"sort": { "type": "string", "default": "name" },
 		"order": { "type": "string", "default": "asc" },
 		"download": { "type": "boolean" },

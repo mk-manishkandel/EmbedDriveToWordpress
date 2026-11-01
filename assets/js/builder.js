@@ -43,7 +43,7 @@
 		code += attr( wantsFolder() ? 'folder' : 'file', target.id );
 
 		if ( mode === 'files' ) {
-			code += form.view.value !== 'list' ? attr( 'view', form.view.value ) : '';
+			code += form.view.value !== 'grid' ? attr( 'view', form.view.value ) : '';
 			code += form.sort.value !== 'name' ? attr( 'sort', form.sort.value ) : '';
 			code += form.order.value !== 'asc' ? attr( 'order', form.order.value ) : '';
 			code += form.zip.checked ? '' : attr( 'zip', 'no' );

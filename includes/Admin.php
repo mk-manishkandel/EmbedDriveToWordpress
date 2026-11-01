@@ -230,8 +230,8 @@ final class Admin {
 						<tr data-for="files">
 							<th scope="row"><label for="ed-view"><?php esc_html_e( 'Layout', 'embed-drive' ); ?></label></th>
 							<td><select id="ed-view" name="view">
-								<option value="list"><?php esc_html_e( 'List', 'embed-drive' ); ?></option>
 								<option value="grid"><?php esc_html_e( 'Grid', 'embed-drive' ); ?></option>
+								<option value="list"><?php esc_html_e( 'List', 'embed-drive' ); ?></option>
 							</select></td>
 						</tr>
 						<tr data-for="files">
