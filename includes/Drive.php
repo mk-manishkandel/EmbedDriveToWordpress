@@ -297,6 +297,8 @@ final class Drive {
 				]
 			);
 			if ( is_wp_error( $response ) ) {
+				Health::record( 'network' );
+
 				return new WP_Error( 'network', __( 'Could not reach Google Drive.', 'embed-drive' ) );
 			}
 
@@ -310,6 +312,7 @@ final class Drive {
 		if ( 200 === $status && is_array( $data ) ) {
 			return $data;
 		}
+		Health::record_status( 200 === $status ? 502 : $status, (string) ( $data['error']['errors'][0]['reason'] ?? '' ) );
 
 		return new WP_Error(
 			404 === $status ? 'not_found' : 'drive_error',

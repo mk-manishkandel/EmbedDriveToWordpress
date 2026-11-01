@@ -3,7 +3,7 @@ Tags: google drive, file browser, documents, download, embed
 Requires at least: 6.0
 Tested up to: 7.1
 Requires PHP: 8.0
-Stable tag: 0.3.8
+Stable tag: 0.3.9
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -20,7 +20,7 @@ Embed Drive shows your Google Drive content on your WordPress site. It is open s
 * **Downloads**: single files, or several as one ZIP.
 * **Multiple Google accounts**.
 * **Activity log**: previews, downloads and searches, stored only in your database.
-* **Email alert** if a Google account stops working.
+* **Email alerts** if a Google account stops working, or if requests to Google keep failing.
 * **Gutenberg block and shortcode builder**.
 
 = Your files stay private =
@@ -60,6 +60,9 @@ A Drive shortcut can point to a file outside the chosen folder, so shortcuts are
 File lists are cached for 5 minutes. Use Clear file cache in the settings to refresh sooner.
 
 == Changelog ==
+
+= 0.3.9 =
+* New: a daily email summary if requests to Google keep failing, for example during an outage or when a Google limit is reached. It is on by default and can be turned off under Notifications.
 
 = 0.3.8 =
 * Security: updated PDF.js to 4.10.38, which fixes a flaw that a malicious PDF could use to run code. Previews were already sandboxed against it.

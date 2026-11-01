@@ -14,7 +14,7 @@ Show Google Drive folders and files on your WordPress site. Open source, with no
 - Single-file embeds, download buttons and links
 - Single-file and streaming ZIP downloads
 - Multiple Google accounts
-- Activity log and an email alert if an account stops working
+- Activity log, and email alerts if an account stops working or requests to Google keep failing
 - Gutenberg block and shortcode builder
 
 ## Quick start

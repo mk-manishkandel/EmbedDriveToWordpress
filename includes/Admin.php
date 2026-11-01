@@ -223,10 +223,12 @@ final class Admin {
 				<section class="ed-card">
 					<h2 class="ed-card__title"><?php esc_html_e( 'Notifications', 'embed-drive' ); ?></h2>
 					<div class="ed-field">
-						<label for="ed-email"><?php esc_html_e( 'Lost-access email', 'embed-drive' ); ?></label>
+						<label for="ed-email"><?php esc_html_e( 'Send emails to', 'embed-drive' ); ?></label>
 						<input id="ed-email" name="notify_email" type="email" placeholder="<?php echo esc_attr( (string) get_option( 'admin_email' ) ); ?>" value="<?php echo esc_attr( $settings['notify_email'] ); ?>">
-						<p class="ed-hint"><?php esc_html_e( 'Sent once if a Google account stops working. Leave empty to use the site admin email.', 'embed-drive' ); ?></p>
+						<p class="ed-hint"><?php esc_html_e( 'Leave empty to use the site admin email. If a Google account stops working, an email is always sent once.', 'embed-drive' ); ?></p>
 					</div>
+					<label class="ed-toggle"><input class="ed-switch" name="error_email" type="checkbox" value="1" <?php checked( $settings['error_email'] ); ?>> <?php esc_html_e( 'Email me if Google keeps failing', 'embed-drive' ); ?></label>
+					<p class="ed-hint"><?php esc_html_e( 'A summary at most once a day, only when requests to Google failed repeatedly. It contains no file names or visitor details.', 'embed-drive' ); ?></p>
 				</section>
 			</div>
 
@@ -531,6 +533,7 @@ final class Admin {
 			'zip_max_files' => max( 1, min( 65000, absint( $_POST['zip_max_files'] ?? 200 ) ) ),
 			'min_height'    => min( 3000, absint( $_POST['min_height'] ?? 0 ) ),
 			'notify_email'  => sanitize_email( wp_unslash( $_POST['notify_email'] ?? '' ) ),
+			'error_email'   => ! empty( $_POST['error_email'] ),
 		];
 		// phpcs:enable
 		if ( '' !== $secret ) {

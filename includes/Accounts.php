@@ -98,6 +98,8 @@ final class Accounts {
 			// The client errors mean the owner's Google app was deleted or its secret changed.
 			if ( in_array( $fresh->get_error_code(), [ 'invalid_grant', 'unauthorized_client', 'invalid_client', 'deleted_client' ], true ) ) {
 				self::mark_lost( $id );
+			} else {
+				Health::record( 'network' === $fresh->get_error_code() ? 'network' : 'signin' );
 			}
 
 			return $fresh;

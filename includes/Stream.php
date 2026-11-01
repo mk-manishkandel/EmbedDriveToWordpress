@@ -36,9 +36,15 @@ final class Stream {
 			$transport = function_exists( 'curl_init' ) ? 'curl' : 'wp_http';
 			$status    = self::$transport( $url, $token, $range, $on_headers, $on_chunk, 0 === $attempt );
 			if ( 401 !== $status ) {
+				// Google refuses to export anything over 10 MB, which is about the file and not the connection.
+				if ( is_int( $status ) && ! ( 403 === $status && null !== $delivery['export'] ) ) {
+					Health::record_status( $status );
+				}
+
 				return $status;
 			}
 		}
+		Health::record_status( 401 );
 
 		return 401;
 	}
@@ -103,6 +109,11 @@ final class Stream {
 		}
 
 		if ( false === $ok ) {
+			// Once bytes are flowing, a stop can just as well be a slow visitor hitting the time limit.
+			if ( ! $started ) {
+				Health::record( 'network' );
+			}
+
 			return new WP_Error( 'network', __( 'Could not reach Google Drive.', 'embed-drive' ) );
 		}
 
@@ -132,6 +143,7 @@ final class Stream {
 		);
 		if ( is_wp_error( $response ) ) {
 			wp_delete_file( $temp );
+			Health::record( 'network' );
 
 			return new WP_Error( 'network', __( 'Could not reach Google Drive.', 'embed-drive' ) );
 		}

@@ -262,6 +262,40 @@ add_action(
 							EmbedDrive\Accounts::check_all();
 
 							return [ 'accounts' => EmbedDrive\Accounts::all(), 'mails' => $embed_drive_mails ];
+						case 'health':
+							if ( $r->get_param( 'reset' ) ) {
+								delete_option( 'embed_drive_health' );
+								EmbedDrive\Drive::flush_cache();
+							}
+							$health = (array) get_option( 'embed_drive_health', [] );
+							// Moves the clock back, so the once-a-minute limit doesn't slow the tests.
+							$age = (int) $r->get_param( 'age' );
+							if ( $age ) {
+								foreach ( $health as $key => $entry ) {
+									$health[ $key ]['last']  -= $age;
+									$health[ $key ]['first'] -= $age;
+								}
+								update_option( 'embed_drive_health', $health, false );
+							}
+
+							return (object) $health;
+						case 'health_summary':
+							global $embed_drive_mails;
+							$embed_drive_mails = [];
+							$mail_works        = (bool) ( $r->get_param( 'mail_works' ) ?? true );
+							add_filter(
+								'pre_wp_mail',
+								static function ( $short, $atts ) use ( $mail_works ) {
+									global $embed_drive_mails;
+									$embed_drive_mails[] = $atts;
+									return $mail_works;
+								},
+								10,
+								2
+							);
+							do_action( EmbedDrive\Plugin::CRON_DAILY );
+
+							return [ 'mails' => $embed_drive_mails, 'health' => (object) get_option( 'embed_drive_health', [] ) ];
 						case 'stored_token':
 							return [ 'raw' => get_option( 'embed_drive_token_' . ( EmbedDrive\Accounts::default_id() ?: 'g12345' ) ) ];
 						case 'log':

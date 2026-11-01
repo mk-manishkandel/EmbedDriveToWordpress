@@ -340,6 +340,10 @@ dialog.embed-drive-picker .button.button-primary:disabled {
 	cursor: pointer;
 }
 
+.ed-field + .ed-toggle {
+	margin-top: 16px;
+}
+
 .embed-drive-admin input.ed-switch {
 	position: relative;
 	flex: 0 0 auto;

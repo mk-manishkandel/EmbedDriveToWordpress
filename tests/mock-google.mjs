@@ -59,6 +59,7 @@ const files = {
 let validToken = 'access-1';
 let refreshCount = 0;
 let revokeLost = false;
+let failure = null;
 const log = [];
 
 function meta( id, port ) {
@@ -138,6 +139,20 @@ const server = http.createServer( async ( req, res ) => {
 		revokeLost = true;
 		validToken = 'nobody-has-this';
 		return send( 200, {} );
+	}
+	if ( url.pathname === '/__fail' ) {
+		// status=0 drops the connection. media=1 fails file content only. token=1 fails sign-in renewal only.
+		failure = url.searchParams.has( 'status' ) ? { status: Number( url.searchParams.get( 'status' ) ), media: url.searchParams.has( 'media' ), token: url.searchParams.has( 'token' ) } : null;
+		return send( 200, {} );
+	}
+	if ( failure?.token && url.pathname === '/token' && form.get( 'grant_type' ) === 'refresh_token' ) {
+		return send( failure.status, { error: 'backendError' } );
+	}
+	if ( failure && ! failure.token && url.pathname.startsWith( '/drive/' ) && ( ! failure.media || url.searchParams.get( 'alt' ) === 'media' || url.pathname.endsWith( '/export' ) ) ) {
+		if ( ! failure.status ) {
+			return req.socket.destroy();
+		}
+		return send( failure.status, { error: { code: failure.status, errors: [ { reason: 'backend<Error>' } ], message: 'secret-looking access-valid-token' } } );
 	}
 	if ( url.pathname === '/__restore' ) {
 		revokeLost = false;

@@ -803,6 +803,138 @@ await it( 'SECURITY: visitor links can be cancelled, by an admin only', async ()
 	assert.equal( ( await get( 'list', { m: fresh } ) ).status, 200 );
 } );
 
+// An earlier test saves the settings form without this box ticked.
+await test_( 'settings', { values: { error_email: true } } );
+const googleFails = async ( query = '' ) => ( await fetch( `${ MOCK }/__fail?${ query }` ) ).arrayBuffer();
+const freshToken = async () => tokenFrom( await render( '[embed_drive mode="files" folder="public"]' ) ).token;
+const failedSearch = async ( term ) => {
+	const r = await get( 'search', { m: await freshToken(), q: 'visitor-term-' + term } );
+	await r.arrayBuffer();
+	return r.status;
+};
+
+await it( 'Google failures are counted once a minute, by kind, with no tokens or Google messages stored', async () => {
+	await test_( 'health', { reset: true } );
+	await googleFails( 'status=503' );
+	assert.equal( await failedSearch( 'a1' ), 502 );
+	assert.equal( await failedSearch( 'a2' ), 502 );
+	const health = await test_( 'health' );
+	await googleFails();
+	assert.deepEqual( Object.keys( health ), [ 'server' ] );
+	assert.equal( health.server.minutes, 1, 'the second failure in the same minute is not written' );
+	assert.equal( health.server.detail, 'HTTP 503 backendError' );
+	assert.ok( ! JSON.stringify( health ).includes( 'access-' ) );
+} );
+
+await it( 'a missing file or a rejected request from a visitor is not counted', async () => {
+	await test_( 'health', { reset: true } );
+	await googleFails( 'status=429' );
+	await failedSearch( 'b429' );
+	assert.equal( ( await test_( 'health' ) ).refused.detail, 'HTTP 429 backendError', 'the same request does count when Google refuses it' );
+	await test_( 'health', { reset: true } );
+	for ( const status of [ 404, 400 ] ) {
+		await googleFails( `status=${ status }` );
+		await failedSearch( 'b' + status );
+	}
+	await googleFails();
+	assert.deepEqual( await test_( 'health' ), {} );
+} );
+
+await it( 'failures fetching a file, connection drops and failed renewals are counted', async () => {
+	await test_( 'health', { reset: true } );
+	await googleFails( 'status=500&media=1' );
+	const r = await get( 'file', { m: await freshToken(), id: 'pub-pdf', disp: 'attachment' } );
+	await r.arrayBuffer();
+	assert.equal( r.status, 502 );
+	assert.match( ( await test_( 'health' ) ).server.detail, /^HTTP 500/ );
+
+	await googleFails( 'status=0' );
+	await failedSearch( 'c1' );
+	assert.equal( ( await test_( 'health' ) ).network.minutes, 1 );
+
+	await googleFails( 'status=500&token=1' );
+	await test_( 'check_all' );
+	await googleFails();
+	assert.equal( ( await test_( 'health' ) ).signin.minutes, 1 );
+} );
+
+await it( 'Google refusing to export a huge document is not counted', async () => {
+	await test_( 'health', { reset: true } );
+	const token = await freshToken();
+	await googleFails( 'status=403&media=1' );
+	const r = await get( 'file', { m: token, id: 'pub-doc', disp: 'attachment' } );
+	await r.arrayBuffer();
+	assert.equal( r.status, 502 );
+	assert.deepEqual( await test_( 'health' ), {} );
+	const plain = await get( 'file', { m: token, id: 'pub-pdf', disp: 'attachment' } );
+	await plain.arrayBuffer();
+	await googleFails();
+	assert.equal( ( await test_( 'health' ) ).refused.minutes, 1, 'a normal file refused the same way does count' );
+} );
+
+await it( 'the summary email: not for a blip, once when repeated, then quiet, with no secrets', async () => {
+	await test_( 'health', { reset: true } );
+	await googleFails( 'status=503' );
+	await failedSearch( 'd1' );
+	let daily = await test_( 'health_summary' );
+	assert.equal( daily.mails.length, 0, 'one failure sends nothing' );
+	assert.equal( daily.health.server.minutes, 1, 'and is kept, in case it builds up' );
+
+	await test_( 'health', { age: 120 } );
+	await failedSearch( 'd2' );
+	await test_( 'health', { age: 120 } );
+	await failedSearch( 'd3' );
+	await googleFails();
+
+	daily = await test_( 'health_summary', { mail_works: false } );
+	assert.equal( daily.mails.length, 1 );
+	assert.equal( daily.health.server.minutes, 3, 'kept if the site could not send the email' );
+
+	daily = await test_( 'health_summary' );
+	assert.equal( daily.mails.length, 1 );
+	const [ mail ] = daily.mails;
+	assert.match( mail.subject, /trouble with Google Drive/ );
+	assert.match( mail.message, /Google had an internal error: in 3 separate minutes/ );
+	assert.match( mail.message, /HTTP 503 backendError/ );
+	assert.match( mail.message, /Embed Drive version: \d/ );
+	for ( const secret of [ 'access-', 'refresh-1', 'Bearer', 'visitor-term', '<Error>' ] ) {
+		assert.ok( ! mail.message.includes( secret ), `email contains ${ secret }` );
+	}
+	assert.equal( ( await test_( 'health_summary' ) ).mails.length, 0, 'nothing more to report' );
+} );
+
+await it( 'old blips are forgotten, and turning the email off stops both counting and sending', async () => {
+	await test_( 'health', { reset: true } );
+	await googleFails( 'status=503' );
+	await failedSearch( 'e1' );
+	await test_( 'health', { age: 8 * 86400 } );
+	const old = await test_( 'health_summary' );
+	assert.equal( old.mails.length, 0 );
+	assert.deepEqual( old.health, {} );
+
+	await test_( 'settings', { values: { error_email: false } } );
+	await failedSearch( 'e2' );
+	assert.deepEqual( await test_( 'health' ), {} );
+	await googleFails();
+	await test_( 'settings', { values: { error_email: true } } );
+} );
+
+await it( 'the email setting is on by default and can be switched off on the settings screen', async () => {
+	const page = await ( await session( `${ SITE }/wp-admin/admin.php?page=embed-drive` ) ).text();
+	assert.match( page, /name="error_email"[^>]*checked/ );
+	const nonce = page.match( /name="_wpnonce" value="([^"]+)"[^>]*>\s*<input type="hidden" name="_wp_http_referer"[^>]*>\s*<details class="embed-drive-advanced"/ )?.[ 1 ];
+	assert.ok( nonce );
+	const saved = await session( `${ SITE }/wp-admin/admin-post.php`, {
+		method: 'POST',
+		headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+		body: new URLSearchParams( { action: 'embed_drive_save', _wpnonce: nonce, client_id: 'owner-client', log_enabled: '1' } ),
+		redirect: 'manual',
+	} );
+	await saved.arrayBuffer();
+	assert.equal( ( await test_( 'read_settings' ) ).settings.error_email, false );
+	await test_( 'settings', { values: { error_email: true } } );
+} );
+
 const log = await ( await fetch( MOCK + '/__log' ) ).json();
 await it( 'nothing was sent to any third party, and no write calls were made to Drive', async () => {
 	const writes = log.filter( ( l ) => l.path.startsWith( '/drive' ) && l.method !== 'GET' );

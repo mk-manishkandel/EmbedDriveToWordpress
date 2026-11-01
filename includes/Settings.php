@@ -21,6 +21,7 @@ final class Settings {
 		'zip_max_mb'     => 1024,
 		'zip_max_files'  => 200,
 		'notify_email'   => '',
+		'error_email'    => true,
 		'min_height'     => 0,
 	];
 

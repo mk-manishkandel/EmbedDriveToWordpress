@@ -48,6 +48,7 @@ final class Plugin {
 	 */
 	public static function daily(): void {
 		Accounts::check_all();
+		Health::send_summary();
 		ActivityLog::purge();
 	}
 }
