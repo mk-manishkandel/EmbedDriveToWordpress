@@ -50,7 +50,7 @@ final class FileTypes {
 		'application/json' => 'text',
 	];
 
-	/** Browsers can't show these, so Google's document viewer does. They reach it only as attachments. */
+	/** Browsers can't show these, so they're drawn in a sandboxed frame or by Google. Sent only as attachments. */
 	const VIEWER = [
 		'application/msword',
 		'application/vnd.openxmlformats-officedocument.wordprocessingml.document',

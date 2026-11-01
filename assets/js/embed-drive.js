@@ -3,7 +3,7 @@
  * so everything here builds DOM nodes and never uses innerHTML.
  */
 ( function () {
-	const { rest, i18n: t } = window.EmbedDriveConfig;
+	const { rest, viewer, i18n: t } = window.EmbedDriveConfig;
 
 	const SVG = 'http://www.w3.org/2000/svg';
 	const CLOSE_MS = 200;
@@ -45,6 +45,14 @@
 	const reducedMotion = window.matchMedia( '(prefers-reduced-motion: reduce)' );
 
 	// Phones, and browsers set to download PDFs, can't show a PDF in a frame.
+	const MAX_DRAWN_BYTES = 60 * 1024 * 1024;
+	const WORD_TYPES = [ 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' ];
+	const SHEET_TYPES = [
+		'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+		'application/vnd.ms-excel',
+		'application/vnd.oasis.opendocument.spreadsheet',
+	];
+
 	const browserShowsPdf = () => navigator.pdfViewerEnabled !== false && ! window.matchMedia( '(hover: none)' ).matches;
 
 	function node( tag, props, ...children ) {
@@ -766,7 +774,7 @@
 			);
 			this.media = node( 'div', { className: 'embed-drive-preview__media' } );
 			this.stage = node( 'div', { className: 'embed-drive-preview__stage' }, node( 'div', { className: 'embed-drive__spinner' } ), this.media );
-			this.tip = node( 'p', { className: 'embed-drive-preview__tip', textContent: t.viewerTip, hidden: true } );
+			this.tip = node( 'p', { className: 'embed-drive-preview__tip', hidden: true } );
 
 			const action = ( name, label, onclick, className = 'embed-drive-preview__action' ) =>
 				node( 'button', { type: 'button', className, title: label, 'aria-label': label, onclick }, icon( name ) );
@@ -838,28 +846,81 @@
 		show() {
 			const item = this.items[ this.index ];
 			const src = this.fileUrl( item, 'inline' );
-			const googleViewer = ( file ) => `https://docs.google.com/viewer?embedded=true&url=${ encodeURIComponent( file ) }`;
-			const viaGoogle = item.preview === 'viewer' || ( item.preview === 'pdf' && ! browserShowsPdf() );
-			let media;
+			this.listener?.abort();
+			this.counter.textContent = `${ this.index + 1 } / ${ this.items.length }`;
+			this.title.textContent = item.name;
+			this.title.title = item.name;
+			this.download.hidden = ! item.download;
+			if ( item.download ) {
+				this.download.href = this.fileUrl( item, 'attachment' );
+			}
+			this.tip.hidden = true;
+
+			if ( item.shared && ( item.preview === 'viewer' || item.preview === 'thumb' ) ) {
+				// Anyone can already open this file at Google, whose own preview handles every format.
+				this.place( node( 'iframe', { src: `https://drive.google.com/file/d/${ encodeURIComponent( item.id ) }/preview`, title: item.name, allow: 'autoplay' } ) );
+				return;
+			}
+
+			const kind = this.drawnKind( item );
+			if ( kind ) {
+				this.drawInFrame( item, kind );
+				return;
+			}
+
 			switch ( item.preview ) {
 				case 'image':
-					media = node( 'img', { src, alt: item.name } );
-					break;
-				case 'thumb':
-					media = node( 'img', { src: this.largeThumb( item ), alt: item.name } );
+					this.place( node( 'img', { src, alt: item.name } ) );
 					break;
 				case 'video':
-					media = node( 'video', { src, controls: true, autoplay: true } );
+					this.place( node( 'video', { src, controls: true, autoplay: true } ) );
 					break;
 				case 'audio':
-					media = node( 'audio', { src, controls: true, autoplay: true } );
+					this.place( node( 'audio', { src, controls: true, autoplay: true } ) );
+					break;
+				case 'pdf':
+				case 'text':
+					this.place( node( 'iframe', { src, title: item.name } ) );
 					break;
 				default:
-					media = node( 'iframe', {
-						src: viaGoogle ? googleViewer( item.preview === 'viewer' ? this.fileUrl( item, 'viewer' ) : src ) : src,
-						title: item.name,
-					} );
+					this.showPicture( item );
 			}
+		}
+
+		/**
+		 * @return {string} What the sandboxed viewer should draw, or nothing if it isn't needed.
+		 */
+		drawnKind( item ) {
+			if ( item.size > MAX_DRAWN_BYTES ) {
+				return '';
+			}
+			if ( item.preview === 'pdf' && ! browserShowsPdf() ) {
+				return 'pdf';
+			}
+			if ( item.preview !== 'viewer' ) {
+				return '';
+			}
+			if ( WORD_TYPES.includes( item.mime ) ) {
+				return 'docx';
+			}
+			return SHEET_TYPES.includes( item.mime ) ? 'sheet' : '';
+		}
+
+		/**
+		 * The last resort: Google's picture of the file's first page.
+		 */
+		showPicture( item ) {
+			this.tip.textContent = item.thumb ? t.firstPage : t.noPreview;
+			this.tip.hidden = false;
+			if ( item.thumb ) {
+				this.place( node( 'img', { src: this.largeThumb( item ), alt: item.name } ) );
+			} else {
+				this.stage.classList.remove( 'is-loading' );
+				this.media.replaceChildren();
+			}
+		}
+
+		place( media ) {
 			this.stage.classList.add( 'is-loading' );
 			const ready = () => {
 				media.classList.add( 'is-ready' );
@@ -871,16 +932,54 @@
 			media.addEventListener( 'error', ready );
 			// Not every browser reports a PDF frame as loaded, so never leave it hidden.
 			window.setTimeout( ready, 2500 );
-
-			this.counter.textContent = `${ this.index + 1 } / ${ this.items.length }`;
-			this.title.textContent = item.name;
-			this.title.title = item.name;
-			this.download.hidden = ! item.download;
-			if ( item.download ) {
-				this.download.href = this.fileUrl( item, 'attachment' );
-			}
-			this.tip.hidden = ! ( viaGoogle && item.download );
 			this.media.replaceChildren( media );
+		}
+
+		/**
+		 * Documents are untrusted, so they're drawn in a frame with no access to this site.
+		 */
+		drawInFrame( item, kind ) {
+			const frame = node( 'iframe', { src: viewer, title: item.name, className: 'is-document' } );
+			frame.setAttribute( 'sandbox', 'allow-scripts' );
+			const listener = new AbortController();
+			this.listener = listener;
+			this.stage.classList.add( 'is-loading' );
+
+			const fail = () => {
+				if ( ! listener.signal.aborted ) {
+					listener.abort();
+					this.showPicture( item );
+				}
+			};
+			const bytes = fetch( this.fileUrl( item, kind === 'pdf' ? 'inline' : 'viewer' ) ).then( ( response ) => {
+				if ( ! response.ok ) {
+					throw new Error( response.statusText );
+				}
+				return response.arrayBuffer();
+			} );
+			bytes.catch( fail );
+
+			window.addEventListener(
+				'message',
+				async ( event ) => {
+					if ( event.source !== frame.contentWindow ) {
+						return;
+					}
+					if ( event.data?.embedDrive === 'ready' ) {
+						const data = await bytes.catch( () => null );
+						if ( data && ! listener.signal.aborted ) {
+							frame.contentWindow.postMessage( { kind, bytes: data }, '*', [ data ] );
+						}
+					} else if ( event.data?.embedDrive === 'done' ) {
+						frame.classList.add( 'is-ready' );
+						this.stage.classList.remove( 'is-loading' );
+					} else if ( event.data?.embedDrive === 'failed' ) {
+						fail();
+					}
+				},
+				{ signal: listener.signal }
+			);
+			this.media.replaceChildren( frame );
 		}
 
 		close() {
@@ -888,6 +987,7 @@
 				return;
 			}
 			this.closing = true;
+			this.listener?.abort();
 			this.dialog.classList.add( 'is-closing' );
 			window.setTimeout(
 				() => {

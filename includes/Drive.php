@@ -15,7 +15,7 @@ final class Drive {
 
 	const FOLDER_MIME   = 'application/vnd.google-apps.folder';
 	const SHORTCUT_MIME = 'application/vnd.google-apps.shortcut';
-	const FIELDS        = 'id,name,mimeType,size,modifiedTime,thumbnailLink,parents';
+	const FIELDS        = 'id,name,mimeType,size,modifiedTime,thumbnailLink,parents,permissionIds';
 	const MAX_DEPTH     = 64;
 	const SORTS         = [
 		'name'     => 'name',
@@ -221,6 +221,13 @@ final class Drive {
 
 	public static function is_folder( array $file ): bool {
 		return self::FOLDER_MIME === ( $file['mimeType'] ?? '' );
+	}
+
+	/**
+	 * Whether anyone with the link can open this file at Google, without signing in.
+	 */
+	public static function is_link_shared( array $file ): bool {
+		return (bool) array_intersect( [ 'anyoneWithLink', 'anyone' ], (array) ( $file['permissionIds'] ?? [] ) );
 	}
 
 	public static function flush_cache(): void {

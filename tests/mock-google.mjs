@@ -2,6 +2,7 @@
 // Implements only what the plugin and relay call, and enforces bearer auth like the real API.
 import http from 'node:http';
 import { createHash } from 'node:crypto';
+import { readFileSync } from 'node:fs';
 
 const FOLDER = 'application/vnd.google-apps.folder';
 const png = Buffer.from(
@@ -10,6 +11,7 @@ const png = Buffer.from(
 );
 
 const body = ( text ) => Buffer.from( text );
+const fixture = ( name ) => readFileSync( new URL( `fixtures/${ name }`, import.meta.url ) );
 const blob = Buffer.alloc( 3 * 1024 * 1024, 'abcdefghij' ); // Big enough to prove streaming and ranges.
 
 // id: [name, mime, parent, content]
@@ -20,7 +22,12 @@ const files = {
 	public: [ 'Public Folder', FOLDER, 'root-id' ],
 	'pub-pdf': [ 'guide.pdf', 'application/pdf', 'public', body( '%PDF-guide' ) ],
 	'pub-img': [ 'photo.png', 'image/png', 'public', png ],
-	'pub-word': [ 'letter.docx', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', 'public', body( 'PK-word' ) ],
+	'pub-word': [ 'letter.docx', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', 'public', fixture( 'letter.docx' ) ],
+	'pub-sheet': [ 'numbers.xlsx', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', 'public', fixture( 'numbers.xlsx' ) ],
+	'pub-real': [ 'real.pdf', 'application/pdf', 'public', fixture( 'real.pdf' ) ],
+	'pub-slides': [ 'deck.pptx', 'application/vnd.openxmlformats-officedocument.presentationml.presentation', 'public', body( 'PK-slides' ) ],
+	'pub-shared': [ 'shared.pptx', 'application/vnd.openxmlformats-officedocument.presentationml.presentation', 'public', body( 'PK-shared' ) ],
+	'pub-bad': [ 'broken.docx', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', 'public', body( 'not a real document' ) ],
 	'pub-csv': [ 'table.csv', 'text/csv', 'public', body( 'a,b' ) ],
 	'pub-big': [ 'big.bin', 'application/octet-stream', 'public', blob ],
 	'pub-html': [ 'evil.html', 'text/html', 'public', body( '<script>alert(1)</script>' ) ],
@@ -34,6 +41,10 @@ const files = {
 	'pub-broken': [ 'broken.txt', 'text/plain', 'public', 'FAIL' ],
 	sub: [ 'Sub Folder', FOLDER, 'public' ],
 	'sub-file': [ "O'Brien notes.txt", 'text/plain', 'sub', body( 'nested needle content' ) ],
+	'only-folders': [ 'QAA Documents (All)', FOLDER, 'root-id' ],
+	'of-1': [ 'EQAAC-Further Progress Visit Report and Its Long Supporting Evidence', FOLDER, 'only-folders' ],
+	'of-2': [ 'PRT Final Visit-Response', FOLDER, 'only-folders' ],
+	'of-3': [ 'Sub Folder', FOLDER, 'only-folders' ],
 	many: [ 'Many Files', FOLDER, 'root-id' ],
 	...Object.fromEntries( Array.from( { length: 130 }, ( _, i ) => [ `many-${ i }`, [ `item ${ String( i ).padStart( 3, '0' ) }.txt`, 'text/plain', 'many', body( 'x' ) ] ] ) ),
 	shortcut: [ 'link-to-secret', 'application/vnd.google-apps.shortcut', 'public' ],
@@ -50,7 +61,10 @@ function meta( id, port ) {
 	if ( Buffer.isBuffer( content ) ) {
 		m.size = String( content.length );
 	}
-	if ( mimeType === 'image/png' ) {
+	if ( id === 'pub-shared' ) {
+		m.permissionIds = [ 'anyoneWithLink', '123' ];
+	}
+	if ( mimeType === 'image/png' || id === 'pub-slides' || id === 'pub-bad' ) {
 		m.thumbnailLink = `http://127.0.0.1:${ port }/thumb/${ id }`;
 	}
 	return m;

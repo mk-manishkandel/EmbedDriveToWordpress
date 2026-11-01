@@ -160,6 +160,17 @@ final class Admin {
 					</tr>
 				</table>
 
+				<h2><?php esc_html_e( 'Appearance', 'embed-drive' ); ?></h2>
+				<table class="form-table" role="presentation">
+					<tr>
+						<th scope="row"><label for="ed-min-height"><?php esc_html_e( 'File browser minimum height', 'embed-drive' ); ?></label></th>
+						<td>
+							<input id="ed-min-height" name="min_height" type="number" min="0" max="3000" step="10" class="small-text" value="<?php echo esc_attr( $settings['min_height'] ); ?>"> px
+							<p class="description"><?php esc_html_e( 'Keeps the file browser at least this tall, even with few files. Use 0 for no minimum. Set a different height for one file browser with min_height="500" in its shortcode, or in its block options.', 'embed-drive' ); ?></p>
+						</td>
+					</tr>
+				</table>
+
 				<h2><?php esc_html_e( 'Activity log', 'embed-drive' ); ?></h2>
 				<table class="form-table" role="presentation">
 					<tr>
@@ -367,6 +378,7 @@ final class Admin {
 			'log_days'      => max( 1, min( 3650, absint( $_POST['log_days'] ?? 90 ) ) ),
 			'zip_max_mb'    => max( 1, min( 4000, absint( $_POST['zip_max_mb'] ?? 1024 ) ) ),
 			'zip_max_files' => max( 1, min( 65000, absint( $_POST['zip_max_files'] ?? 200 ) ) ),
+			'min_height'    => min( 3000, absint( $_POST['min_height'] ?? 0 ) ),
 			'notify_email'  => sanitize_email( wp_unslash( $_POST['notify_email'] ?? '' ) ),
 		];
 		// phpcs:enable

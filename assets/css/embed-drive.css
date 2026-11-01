@@ -12,32 +12,68 @@
 	--ed-ease: cubic-bezier(0.2, 0, 0, 1);
 }
 
-/* Themes style bare buttons, links and inputs heavily, so take those back inside the module. */
-.embed-drive button,
-.embed-drive button:hover,
-.embed-drive button:focus,
-.embed-drive a,
-.embed-drive a:hover,
-.embed-drive input,
-.embed-drive-preview button,
-.embed-drive-preview button:hover,
-.embed-drive-preview button:focus,
-.embed-drive-preview a,
-.embed-drive-preview a:hover {
-	min-width: 0;
-	min-height: 0;
-	margin: 0;
-	padding: 0;
-	color: inherit;
-	font: inherit;
-	letter-spacing: normal;
-	line-height: inherit;
-	text-decoration: none;
-	text-transform: none;
-	background: none;
-	border: 0;
-	border-radius: 0;
-	box-shadow: none;
+/*
+ * Themes style bare buttons, links and inputs heavily, often with !important, so this is the one
+ * rule that paints them. Everything further down sets the --ed-* values instead of the property.
+ */
+.embed-drive:not(#ed) button,
+.embed-drive:not(#ed) button:hover,
+.embed-drive:not(#ed) button:focus,
+.embed-drive:not(#ed) button:active,
+.embed-drive:not(#ed) a,
+.embed-drive:not(#ed) a:hover,
+.embed-drive:not(#ed) a:focus,
+.embed-drive:not(#ed) input,
+.embed-drive:not(#ed) input:hover,
+.embed-drive:not(#ed) input:focus,
+.embed-drive-preview:not(#ed) button,
+.embed-drive-preview:not(#ed) button:hover,
+.embed-drive-preview:not(#ed) button:focus,
+.embed-drive-preview:not(#ed) button:active,
+.embed-drive-preview:not(#ed) a,
+.embed-drive-preview:not(#ed) a:hover,
+.embed-drive-preview:not(#ed) a:focus {
+	min-width: 0 !important;
+	min-height: 0 !important;
+	margin: 0 !important;
+	padding: var(--ed-p, 0) !important;
+	color: var(--ed-c, inherit) !important;
+	font-family: inherit !important;
+	font-size: inherit !important;
+	font-style: normal !important;
+	font-weight: var(--ed-w, inherit) !important;
+	letter-spacing: normal !important;
+	line-height: inherit !important;
+	text-align: left !important;
+	text-decoration: none !important;
+	text-shadow: none !important;
+	text-transform: none !important;
+	white-space: var(--ed-ws, normal) !important;
+	background: var(--ed-b, none) !important;
+	border: 0 !important;
+	border-radius: var(--ed-r, 0) !important;
+	box-shadow: var(--ed-s, none) !important;
+	transform: var(--ed-t, none) !important;
+}
+
+.embed-drive:not(#ed) ol,
+.embed-drive:not(#ed) li,
+.embed-drive:not(#ed) p,
+.embed-drive:not(#ed) hr {
+	margin: var(--ed-m, 0) !important;
+	padding: 0 !important;
+	line-height: inherit !important;
+	list-style: none !important;
+}
+
+.embed-drive:not(#ed) input[type="checkbox"] {
+	appearance: auto !important;
+}
+
+.embed-drive button::before,
+.embed-drive-preview button::before,
+.embed-drive-preview button::after {
+	content: none !important;
 }
 
 .embed-drive button:focus-visible,
@@ -45,7 +81,7 @@
 .embed-drive input:focus-visible,
 .embed-drive-preview button:focus-visible,
 .embed-drive-preview a:focus-visible {
-	outline: 2px solid var(--ed-accent);
+	outline: 2px solid var(--ed-accent) !important;
 	outline-offset: 1px;
 }
 
@@ -53,7 +89,7 @@
 .embed-drive a:focus:not(:focus-visible),
 .embed-drive-preview button:focus:not(:focus-visible),
 .embed-drive-preview a:focus:not(:focus-visible) {
-	outline: 0;
+	outline: 0 !important;
 }
 
 .embed-drive *,
@@ -116,15 +152,15 @@
 	justify-content: center;
 	width: 34px;
 	height: 34px;
-	color: var(--ed-text);
+	--ed-c: var(--ed-text);
 	cursor: pointer;
-	border-radius: 50%;
+	--ed-r: 50%;
 	transition: background-color 0.15s ease;
 }
 
 .embed-drive .embed-drive__tool:hover,
 .embed-drive .embed-drive__tool[aria-expanded="true"] {
-	background: var(--ed-hover);
+	--ed-b: var(--ed-hover);
 }
 
 .embed-drive__tool.is-spinning .embed-drive__glyph {
@@ -165,6 +201,9 @@
 }
 
 .embed-drive .embed-drive__crumb {
+	--ed-p: 3px 8px;
+	--ed-r: var(--ed-radius);
+	--ed-ws: nowrap;
 	display: block;
 	max-width: 100%;
 	padding: 3px 8px;
@@ -180,7 +219,7 @@
 }
 
 .embed-drive button.embed-drive__crumb:hover {
-	background: var(--ed-hover);
+	--ed-b: var(--ed-hover);
 }
 
 .embed-drive__crumb.is-current {
@@ -245,9 +284,9 @@
 	width: 100%;
 	min-width: 0;
 	height: 34px;
-	padding: 0 6px;
-	color: inherit;
-	background: transparent;
+	--ed-p: 0 6px;
+	--ed-c: inherit;
+	--ed-b: transparent;
 	border: 0;
 	outline: 0;
 	appearance: none;
@@ -268,11 +307,11 @@
 	gap: 10px;
 	width: 100%;
 	min-height: 34px;
-	padding: 5px 10px;
+	--ed-p: 5px 10px;
 	text-align: left;
-	white-space: nowrap;
+	--ed-ws: nowrap;
 	cursor: pointer;
-	border-radius: 7px;
+	--ed-r: 7px;
 	transition: background-color 0.15s ease, opacity 0.15s ease;
 }
 
@@ -281,7 +320,7 @@
 }
 
 .embed-drive .embed-drive__menuitem:hover:not(:disabled) {
-	background: var(--ed-hover);
+	--ed-b: var(--ed-hover);
 }
 
 .embed-drive .embed-drive__menuitem:disabled {
@@ -294,7 +333,7 @@
 }
 
 .embed-drive__menuitem.is-checked {
-	font-weight: 600;
+	--ed-w: 600;
 }
 
 .embed-drive__menuitem.is-checked .embed-drive__glyph {
@@ -303,8 +342,8 @@
 }
 
 .embed-drive .embed-drive__rule {
+	--ed-m: 5px 4px;
 	height: 1px;
-	margin: 5px 4px;
 	background: var(--ed-line);
 	border: 0;
 }
@@ -318,7 +357,8 @@
 }
 
 .embed-drive__content {
-	max-height: 86vh;
+	min-height: var(--ed-min-height, 0);
+	max-height: max(86vh, var(--ed-min-height, 0px));
 	padding: var(--ed-gap);
 	overflow-y: auto;
 	overscroll-behavior: contain;
@@ -355,7 +395,7 @@
 }
 
 .embed-drive__status {
-	margin: 18px 0;
+	--ed-m: 18px 0;
 	color: var(--ed-muted);
 	text-align: center;
 }
@@ -522,11 +562,11 @@
 }
 
 .embed-drive .embed-drive__item:hover .embed-drive__name:not(:disabled) {
-	color: var(--ed-accent);
+	--ed-c: var(--ed-accent);
 }
 
 .embed-drive__item.is-folder .embed-drive__name {
-	font-weight: 600;
+	--ed-w: 600;
 }
 
 .embed-drive__date,
@@ -548,15 +588,15 @@
 	justify-content: center;
 	width: 30px;
 	height: 30px;
-	color: var(--ed-text);
-	background: var(--ed-card);
-	border-radius: 50%;
+	--ed-c: var(--ed-text);
+	--ed-b: var(--ed-card);
+	--ed-r: 50%;
 	opacity: 0;
 	transition: opacity 0.15s ease, background-color 0.15s ease;
 }
 
 .embed-drive .embed-drive__download:hover {
-	background: var(--ed-hover);
+	--ed-b: var(--ed-hover);
 }
 
 .embed-drive__item:hover .embed-drive__download,
@@ -571,8 +611,8 @@
 	gap: var(--ed-gap);
 }
 
-.embed-drive__body.is-grid .embed-drive__folders:not(:empty) {
-	margin-bottom: calc(var(--ed-gap) * 2);
+.embed-drive__body.is-grid .embed-drive__folders:not(:empty) + .embed-drive__files:not(:empty) {
+	margin-top: calc(var(--ed-gap) * 2);
 }
 
 .embed-drive__body.is-grid .embed-drive__date,
@@ -640,10 +680,10 @@
 .embed-drive .embed-drive__more {
 	display: block;
 	margin: 14px auto 4px;
-	padding: 7px 16px;
+	--ed-p: 7px 16px;
 	cursor: pointer;
-	background: var(--ed-card);
-	border-radius: 999px;
+	--ed-b: var(--ed-card);
+	--ed-r: 999px;
 	transition: background-color 0.15s ease;
 }
 
@@ -652,7 +692,7 @@
 }
 
 .embed-drive .embed-drive__more:hover:not(:disabled) {
-	background: var(--ed-hover);
+	--ed-b: var(--ed-hover);
 }
 
 .embed-drive .embed-drive__top {
@@ -668,18 +708,18 @@
 	margin-left: -21px;
 	visibility: hidden;
 	cursor: pointer;
-	background: var(--ed-card);
-	border-radius: 50%;
-	box-shadow: 0 2px 12px rgba(20, 24, 32, 0.28);
+	--ed-b: var(--ed-card);
+	--ed-r: 50%;
+	--ed-s: 0 2px 12px rgba(20, 24, 32, 0.28);
 	opacity: 0;
-	transform: translateY(8px);
+	--ed-t: translateY(8px);
 	transition: opacity 0.2s ease, transform 0.2s var(--ed-ease), visibility 0.2s;
 }
 
 .embed-drive .embed-drive__top.is-visible {
 	visibility: visible;
 	opacity: 1;
-	transform: none;
+	--ed-t: none;
 }
 
 /* Placeholders while the first listing loads */
@@ -869,9 +909,9 @@ html.embed-drive-locked {
 	justify-content: center;
 	width: 40px;
 	height: 40px;
-	color: #fff;
+	--ed-c: #fff;
 	cursor: pointer;
-	border-radius: 50%;
+	--ed-r: 50%;
 	transition: background-color 0.15s ease;
 }
 
@@ -880,7 +920,7 @@ html.embed-drive-locked {
 }
 
 .embed-drive-preview .embed-drive-preview__action:hover {
-	background: rgba(255, 255, 255, 0.16);
+	--ed-b: rgba(255, 255, 255, 0.16);
 }
 
 .embed-drive-preview .embed-drive-preview__nav {
@@ -890,11 +930,11 @@ html.embed-drive-locked {
 	width: 46px;
 	height: 46px;
 	margin-top: -23px;
-	background: rgba(0, 0, 0, 0.45);
+	--ed-b: rgba(0, 0, 0, 0.45);
 }
 
 .embed-drive-preview .embed-drive-preview__nav:hover {
-	background: rgba(0, 0, 0, 0.75);
+	--ed-b: rgba(0, 0, 0, 0.75);
 }
 
 .embed-drive-preview__nav--prev {
@@ -909,8 +949,8 @@ html.embed-drive-locked {
 	flex: 0 0 auto;
 	margin: 0;
 	padding: 0 18px 8px;
-	font-size: 12px;
-	opacity: 0.65;
+	font-size: 13px;
+	opacity: 0.8;
 }
 
 .embed-drive-preview__tip[hidden] {
@@ -960,6 +1000,12 @@ html.embed-drive-locked {
 	max-width: 100%;
 	max-height: 100%;
 	object-fit: contain;
+}
+
+.embed-drive-preview__media iframe.is-document {
+	width: 100%;
+	background: #2a2d33;
+	border-radius: 0;
 }
 
 .embed-drive-preview__media iframe {

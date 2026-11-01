@@ -21,6 +21,7 @@ final class Settings {
 		'zip_max_mb'     => 1024,
 		'zip_max_files'  => 200,
 		'notify_email'   => '',
+		'min_height'     => 0,
 	];
 
 	public static function all(): array {

@@ -349,9 +349,16 @@ final class Rest {
 	 * Google's picture of the file is the last resort before offering only a download.
 	 */
 	private static function preview_for( array $file ): string {
-		$kind = FileTypes::preview_kind( (string) $file['mimeType'] );
+		$mime = (string) $file['mimeType'];
+		$kind = FileTypes::preview_kind( $mime );
+		if ( 'none' !== $kind ) {
+			return $kind;
+		}
+		if ( Drive::is_link_shared( $file ) && FileTypes::is_downloadable( $mime ) ) {
+			return 'viewer';
+		}
 
-		return 'none' === $kind && ! empty( $file['thumbnailLink'] ) ? 'thumb' : $kind;
+		return empty( $file['thumbnailLink'] ) ? 'none' : 'thumb';
 	}
 
 	private static function item( array $file, array $module ): array {
@@ -366,6 +373,7 @@ final class Rest {
 			'size'     => isset( $file['size'] ) ? (int) $file['size'] : null,
 			'modified' => (string) ( $file['modifiedTime'] ?? '' ),
 			'thumb'    => ! $is_folder && ! empty( $file['thumbnailLink'] ),
+			'shared'   => ! $is_folder && Drive::is_link_shared( $file ),
 			'preview'  => ( ! $is_folder && ! empty( $module['p'] ) ) ? self::preview_for( $file ) : 'none',
 			'download' => ! $is_folder && ! empty( $module['d'] ) && FileTypes::is_downloadable( $mime ),
 		];

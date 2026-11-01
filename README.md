@@ -61,6 +61,7 @@ Someone hosting sites for others can run the optional [sign-in relay](relay/READ
 | `zip` | `yes`, `no` | `yes` | `files` |
 | `search` | `yes`, `no` | `yes` | `files` |
 | `preview` | `yes`, `no` | `yes` | `files`, `search` |
+| `min_height` | pixels | the plugin setting | `files` |
 | `label` | Text | File name | `button`, `link` |
 | `height` | Pixels, for documents | `600` | `embed` |
 

@@ -380,6 +380,21 @@ await it( 'listing pages move forward, and caches are told not to keep them', as
 	assert.notEqual( two.items[ 0 ].id, one.items[ 0 ].id );
 } );
 
+await it( 'a file shared by link is flagged for Google\'s own preview, and others are not', async () => {
+	const t = tokenFrom( await render( '[embed_drive mode="files" folder="public"]' ) );
+	const { items } = await ( await get( 'list', { m: t.token } ) ).json();
+	assert.equal( items.find( ( i ) => i.id === 'pub-shared' ).shared, true );
+	assert.equal( items.find( ( i ) => i.id === 'pub-word' ).shared, false );
+} );
+
+await it( 'minimum height comes from Settings, and a module can override it', async () => {
+	await test_( 'settings', { values: { min_height: 450 } } );
+	assert.match( await render( '[embed_drive mode="files" folder="public"]' ), /--ed-min-height:450px/ );
+	assert.match( await render( '[embed_drive mode="files" folder="public" min_height="700"]' ), /--ed-min-height:700px/ );
+	await test_( 'settings', { values: { min_height: 0 } } );
+	assert.doesNotMatch( await render( '[embed_drive mode="files" folder="public"]' ), /--ed-min-height/ );
+} );
+
 await it( 'updater offers a newer GitHub release', async () => {
 	await test_( 'seed_release', {
 		release: { version: '9.9.9', url: 'https://example.test/r', package: 'https://example.test/embed-drive.zip', notes: 'n' },

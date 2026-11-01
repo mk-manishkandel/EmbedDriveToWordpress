@@ -3,7 +3,7 @@ Tags: google drive, file browser, documents, download, embed
 Requires at least: 6.0
 Tested up to: 7.1
 Requires PHP: 8.0
-Stable tag: 0.3.0
+Stable tag: 0.3.1
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -35,7 +35,7 @@ This plugin connects to these services:
 
 * **Google** (Google Drive API and Google sign-in), to read the Drive content you choose. Used only after you connect an account. [Terms](https://policies.google.com/terms), [Privacy](https://policies.google.com/privacy).
 * **A sign-in relay**, only if you add one in wp-config.php. It sees your authorization codes and tokens while passing them on. See the relay's owner for its terms.
-* **Google's document viewer** (docs.google.com), in the visitor's browser, to preview Office-style files and PDFs on devices that can't show them. Google fetches the file from your site using a link limited to that module's folder. Your site must be publicly reachable for this to work.
+* **Google Drive's file preview** (drive.google.com), in the visitor's browser, only for files already shared as "anyone with the link".
 * **GitHub** (api.github.com and github.com), to check for plugin updates. Sends no site data beyond an ordinary web request. [Terms](https://docs.github.com/site-policy/github-terms/github-terms-of-service), [Privacy](https://docs.github.com/site-policy/privacy-policies/github-general-privacy-statement).
 
 == Installation ==
@@ -60,6 +60,11 @@ A Drive shortcut can point to a file outside the chosen folder, so shortcuts are
 File lists are cached for 5 minutes. Use Clear file cache in the settings to refresh sooner.
 
 == Changelog ==
+
+= 0.3.1 =
+* Theme button styles, such as colored backgrounds, no longer show through in the file browser.
+* New setting: a minimum height for the file browser, with an override per module.
+* Previews no longer depend on Google fetching files from your site, which could show "No preview available". Word, Excel and PDF files are drawn in the browser. Files shared as "anyone with the link" use Google Drive's own preview, for nearly any file type. Other files show a picture of the first page.
 
 = 0.3.0 =
 * New front-end design: toolbar with icon buttons, folder and thumbnail cards, placeholders while loading, smooth transitions. Grid is now the default layout.

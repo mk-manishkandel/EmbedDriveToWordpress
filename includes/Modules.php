@@ -20,7 +20,8 @@ final class Modules {
 			'embed-drive',
 			'EmbedDriveConfig',
 			[
-				'rest' => rest_url( Rest::NS . '/' ),
+				'rest'   => rest_url( Rest::NS . '/' ),
+				'viewer' => EMBED_DRIVE_URL . 'assets/viewer/viewer.html?v=' . EMBED_DRIVE_VERSION,
 				'i18n' => [
 					'loading'   => __( 'Loading…', 'embed-drive' ),
 					'empty'     => __( 'This folder is empty.', 'embed-drive' ),
@@ -50,7 +51,8 @@ final class Modules {
 					'top'       => __( 'Scroll to top', 'embed-drive' ),
 					'previous'  => __( 'Previous file', 'embed-drive' ),
 					'next'      => __( 'Next file', 'embed-drive' ),
-					'viewerTip' => __( 'Shown with Google\'s document viewer. If it stays blank, use the download button.', 'embed-drive' ),
+					'firstPage' => __( 'Only the first page can be shown here. Download the file to see all of it.', 'embed-drive' ),
+					'noPreview' => __( 'A preview is not available for this file. Please download it instead.', 'embed-drive' ),
 					'zip'       => __( 'Download selected', 'embed-drive' ),
 					'preparing' => __( 'Preparing ZIP…', 'embed-drive' ),
 					'select'    => __( 'Select', 'embed-drive' ),
@@ -128,6 +130,7 @@ final class Modules {
 				'preview'  => 'yes',
 				'label'    => '',
 				'height'   => '600',
+				'min_height' => '',
 			],
 			(array) $atts,
 			'embed_drive'
@@ -178,6 +181,10 @@ final class Modules {
 	private static function render_app( string $mode, string $token, array $a, bool $download ): string {
 		wp_enqueue_script( 'embed-drive' );
 
+		// A module's own value wins over the one in Settings. Either way, 0 means no minimum.
+		$min_height = (int) $a['min_height'] ?: (int) Settings::get( 'min_height' );
+		$min_height = 'files' === $mode ? max( 0, min( 3000, $min_height ) ) : 0;
+
 		$config = [
 			'token'    => $token,
 			'mode'     => $mode,
@@ -189,7 +196,8 @@ final class Modules {
 		];
 
 		return sprintf(
-			'<div class="embed-drive" data-embed-drive="%s"><noscript>%s</noscript></div>',
+			'<div class="embed-drive"%s data-embed-drive="%s"><noscript>%s</noscript></div>',
+			$min_height ? sprintf( ' style="--ed-min-height:%dpx"', $min_height ) : '',
 			esc_attr( (string) wp_json_encode( $config ) ),
 			esc_html__( 'Please enable JavaScript to browse these files.', 'embed-drive' )
 		);
@@ -230,7 +238,13 @@ final class Modules {
 				$body = sprintf( '<audio src="%s" controls preload="metadata" aria-label="%s"></audio>', $inline, esc_attr( $name ) );
 				break;
 			case 'viewer':
-				$body = sprintf( '<iframe src="%s" title="%s" height="%d" loading="lazy"></iframe>', esc_url( add_query_arg( [ 'embedded' => 'true', 'url' => rawurlencode( Rest::file_url( $token, $id, 'viewer' ) ) ], 'https://docs.google.com/viewer' ) ), esc_attr( $name ), $height );
+				if ( Drive::is_link_shared( $file ) ) {
+					$body = sprintf( '<iframe src="%s" title="%s" height="%d" loading="lazy"></iframe>', esc_url( 'https://drive.google.com/file/d/' . rawurlencode( $id ) . '/preview' ), esc_attr( $name ), $height );
+				} elseif ( ! empty( $file['thumbnailLink'] ) ) {
+					$body = sprintf( '<img src="%s" alt="%s" loading="lazy" />', esc_url( add_query_arg( [ 'm' => $token, 'id' => $id, 'large' => 1 ], rest_url( Rest::NS . '/thumb' ) ) ), esc_attr( $name ) );
+				} else {
+					$body = '<p>' . esc_html__( 'This file type cannot be shown on the page.', 'embed-drive' ) . '</p>';
+				}
 				break;
 			case 'pdf':
 			case 'text':

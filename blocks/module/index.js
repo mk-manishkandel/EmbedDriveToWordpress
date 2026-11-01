@@ -102,6 +102,14 @@
 						onChange: ( zip ) => set( { zip } ),
 					} ),
 				a.mode === 'files' &&
+					el( TextControl, {
+						label: __( 'Minimum height (px)', 'embed-drive' ),
+						help: __( 'Use 0 to follow the plugin settings.', 'embed-drive' ),
+						type: 'number',
+						value: a.min_height,
+						onChange: ( value ) => set( { min_height: Math.max( 0, parseInt( value, 10 ) || 0 ) } ),
+					} ),
+				a.mode === 'files' &&
 					el( ToggleControl, {
 						label: __( 'Show search box', 'embed-drive' ),
 						checked: a.search,
