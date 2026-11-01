@@ -32,7 +32,7 @@ SERVER=$!
 # First boot downloads WordPress, so allow several minutes.
 ready=""
 for _ in $(seq 1 120); do
-	if curl -s -o /dev/null --max-time 20 http://127.0.0.1:9500/; then
+	if curl -sf -o /dev/null --max-time 20 http://127.0.0.1:9500/; then
 		ready=1
 		break
 	fi
