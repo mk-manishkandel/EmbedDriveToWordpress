@@ -17,7 +17,7 @@ final class Updater {
 	const SIGNATURE = 'embed-drive.zip.sig';
 
 	/** Updates must be signed with the matching private key, which is never kept on GitHub. */
-	const PUBLIC_KEY = 'WxB2OHI9oW/LJn63y6Kwck+SG2khsEWbE1G95etL+TM=';
+	const PUBLIC_KEY = 'lbKX5UuYjVwa9MokiHaPYJ5NUVux4YAwx2cd0NzxY1M=';
 
 	public static function boot(): void {
 		add_filter( 'update_plugins_github.com', [ self::class, 'check' ], 10, 3 );
