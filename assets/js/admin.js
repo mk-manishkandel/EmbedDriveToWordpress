@@ -14,18 +14,23 @@
 			button.textContent = __( 'Copied', 'embed-drive' );
 			setTimeout( () => ( button.textContent = label ), 1500 );
 		};
-		const text = button.parentElement.querySelector( 'code' ).textContent;
-		// Browsers only offer the clipboard API on https, and some sites run on plain http.
-		if ( navigator.clipboard ) {
-			navigator.clipboard.writeText( text ).then( done );
-		} else {
+		const code = button.parentElement.querySelector( 'code' );
+		// Leaves the text selected if copying fails, so it can still be copied by hand.
+		const failed = () => {
 			const range = document.createRange();
-			range.selectNodeContents( button.parentElement.querySelector( 'code' ) );
+			range.selectNodeContents( code );
 			window.getSelection().removeAllRanges();
 			window.getSelection().addRange( range );
-			document.execCommand( 'copy' );
-			window.getSelection().removeAllRanges();
-			done();
+			if ( document.execCommand( 'copy' ) ) {
+				window.getSelection().removeAllRanges();
+				done();
+			}
+		};
+		// The clipboard API is missing on plain http and can be refused, so there is always a fallback.
+		if ( navigator.clipboard ) {
+			navigator.clipboard.writeText( code.textContent ).then( done, failed );
+		} else {
+			failed();
 		}
 	} );
 } )( window.wp );

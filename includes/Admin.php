@@ -41,8 +41,8 @@ final class Admin {
 	}
 
 	public static function menu(): void {
-		add_menu_page( 'Embed Drive', 'Embed Drive', 'edit_others_posts', 'embed-drive-builder', [ self::class, 'builder_page' ], 'data:image/svg+xml;base64,' . base64_encode( sprintf( self::MENU_ICON, self::ICON_PATH ) ), 81 );
-		add_submenu_page( 'embed-drive-builder', __( 'Shortcode Builder', 'embed-drive' ), __( 'Shortcode Builder', 'embed-drive' ), 'edit_others_posts', 'embed-drive-builder', [ self::class, 'builder_page' ] );
+		add_menu_page( 'Embed Drive', 'Embed Drive', Modules::embed_capability(), 'embed-drive-builder', [ self::class, 'builder_page' ], 'data:image/svg+xml;base64,' . base64_encode( sprintf( self::MENU_ICON, self::ICON_PATH ) ), 81 );
+		add_submenu_page( 'embed-drive-builder', __( 'Shortcode Builder', 'embed-drive' ), __( 'Shortcode Builder', 'embed-drive' ), Modules::embed_capability(), 'embed-drive-builder', [ self::class, 'builder_page' ] );
 		add_submenu_page( 'embed-drive-builder', __( 'Accounts & Settings', 'embed-drive' ), __( 'Accounts & Settings', 'embed-drive' ), 'manage_options', 'embed-drive', [ self::class, 'settings_page' ] );
 		add_submenu_page( 'embed-drive-builder', __( 'Activity', 'embed-drive' ), __( 'Activity', 'embed-drive' ), 'manage_options', 'embed-drive-activity', [ self::class, 'activity_page' ] );
 	}
@@ -90,7 +90,7 @@ final class Admin {
 				<ul class="ed-accounts">
 				<?php foreach ( $accounts as $account ) : ?>
 					<li class="ed-account">
-						<span class="ed-account__avatar" aria-hidden="true"><?php echo esc_html( mb_strtoupper( mb_substr( (string) ( $account['name'] ?: $account['email'] ), 0, 1 ) ) ); ?></span>
+						<span class="ed-account__avatar" aria-hidden="true"><?php echo esc_html( mb_substr( (string) ( $account['name'] ?: $account['email'] ), 0, 1 ) ); ?></span>
 						<span class="ed-account__who">
 							<strong><?php echo esc_html( $account['name'] ); ?></strong>
 							<span><?php echo esc_html( $account['email'] ); ?></span>
@@ -374,7 +374,7 @@ final class Admin {
 			'zip'      => __( 'ZIP', 'embed-drive' ),
 			'search'   => __( 'Search', 'embed-drive' ),
 		];
-		$event  = isset( $_GET['event'], $events[ $_GET['event'] ] ) ? sanitize_key( $_GET['event'] ) : '';
+		$event  = isset( $_GET['event'] ) && is_string( $_GET['event'] ) && isset( $events[ $_GET['event'] ] ) ? sanitize_key( $_GET['event'] ) : '';
 		$page   = max( 1, absint( $_GET['paged'] ?? 1 ) );
 		// phpcs:enable
 
@@ -478,7 +478,7 @@ final class Admin {
 	 * The frame every screen shares, built like the file browser: a toolbar over a panel of cards.
 	 */
 	private static function open_page( string $current, string $title ): void {
-		$tabs = [ 'embed-drive-builder' => [ __( 'Shortcode Builder', 'embed-drive' ), 'edit_others_posts' ], 'embed-drive' => [ __( 'Accounts & Settings', 'embed-drive' ), 'manage_options' ], 'embed-drive-activity' => [ __( 'Activity', 'embed-drive' ), 'manage_options' ] ];
+		$tabs = [ 'embed-drive-builder' => [ __( 'Shortcode Builder', 'embed-drive' ), Modules::embed_capability() ], 'embed-drive' => [ __( 'Accounts & Settings', 'embed-drive' ), 'manage_options' ], 'embed-drive-activity' => [ __( 'Activity', 'embed-drive' ), 'manage_options' ] ];
 		$tabs = array_filter( $tabs, static fn( $tab ) => current_user_can( $tab[1] ) );
 		?>
 		<div class="wrap embed-drive-admin">

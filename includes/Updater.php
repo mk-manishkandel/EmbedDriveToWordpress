@@ -190,7 +190,7 @@ final class Updater {
 		$signed  = false;
 		foreach ( (array) ( $data['assets'] ?? [] ) as $asset ) {
 			if ( self::ASSET === ( $asset['name'] ?? '' ) ) {
-				$package = (string) $asset['browser_download_url'];
+				$package = (string) ( $asset['browser_download_url'] ?? '' );
 			}
 			$signed = $signed || self::SIGNATURE === ( $asset['name'] ?? '' );
 		}

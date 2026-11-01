@@ -631,6 +631,25 @@ await it( 'the settings form saves a Google app, and the secret stays encrypted'
 // Tests above leave the account disconnected.
 await test_( 'connect' );
 
+await it( 'SECURITY: each role reaches only what it should', async () => {
+	const expected = { subscriber: [ 403, false ], contributor: [ 403, false ], author: [ 403, false ], editor: [ 200, true ] };
+	for ( const [ role, [ browse, embed ] ] of Object.entries( expected ) ) {
+		const result = await test_( 'role_probe', { role } );
+		assert.deepEqual( [ result.browse, result.embed, result.settings ], [ browse, embed, false ], role );
+	}
+} );
+
+await it( 'a widget still shows beside a post by a low-level author, but not that post\'s own module', async () => {
+	assert.deepEqual( await test_( 'widget_probe' ), { in_widget: true, post_in_widget: false, in_author_content: false } );
+} );
+
+await it( 'odd filters on the activity screen do not break it', async () => {
+	for ( const query of [ 'event[]=x', 'paged[]=1', 'event=nope', 'paged=-5' ] ) {
+		const r = await session( `${ SITE }/wp-admin/admin.php?page=embed-drive-activity&${ query }` );
+		assert.doesNotMatch( await r.text(), /critical error|Fatal|TypeError|Warning:/, query );
+	}
+} );
+
 await it( 'SECURITY: low-level accounts cannot get a link from the block preview', async () => {
 	for ( const role of [ 'subscriber', 'contributor', 'author' ] ) {
 		const result = await test_( 'attack_contributor', { role } );

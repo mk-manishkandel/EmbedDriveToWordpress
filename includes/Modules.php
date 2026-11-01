@@ -16,6 +16,9 @@ final class Modules {
 	/** Raising this cancels every visitor link made before it. */
 	const TOKEN_VERSION = 2;
 
+	/** How many widget areas are being drawn right now. */
+	private static int $sidebars = 0;
+
 	public static function register(): void {
 		wp_register_style( 'embed-drive', EMBED_DRIVE_URL . 'assets/css/embed-drive.css', [], EMBED_DRIVE_VERSION );
 		wp_register_script( 'embed-drive', EMBED_DRIVE_URL . 'assets/js/embed-drive.js', [], EMBED_DRIVE_VERSION, true );
@@ -71,6 +74,13 @@ final class Modules {
 		// The picker dialog opens in the editor's own document.
 		add_action( 'enqueue_block_editor_assets', static fn() => wp_enqueue_style( 'embed-drive-admin' ) );
 
+		add_action( 'dynamic_sidebar_before', static function () {
+			self::$sidebars++;
+		} );
+		add_action( 'dynamic_sidebar_after', static function () {
+			self::$sidebars--;
+		} );
+
 		add_shortcode( 'embed_drive', [ self::class, 'render' ] );
 		register_block_type( EMBED_DRIVE_DIR . 'blocks/module', [ 'render_callback' => [ self::class, 'render_block' ] ] );
 	}
@@ -98,7 +108,7 @@ final class Modules {
 		return current_user_can( self::embed_capability() );
 	}
 
-	private static function embed_capability(): string {
+	public static function embed_capability(): string {
 		return (string) apply_filters( 'embed_drive_embed_capability', 'edit_others_posts' );
 	}
 
@@ -281,10 +291,15 @@ final class Modules {
 	/**
 	 * Widgets and templates render with no post, but so do the block preview and similar requests,
 	 * where the text comes from whoever is asking. That person must then be allowed to embed.
+	 *
+	 * A widget belongs to whoever manages the site, not to the author of the post it appears beside,
+	 * unless the widget is showing that post's own content.
 	 */
 	private static function author_may_embed(): bool {
 		$post = get_post();
-		if ( $post ) {
+		if ( self::$sidebars > 0 && ! doing_filter( 'the_content' ) ) {
+			$allowed = true;
+		} elseif ( $post ) {
 			$allowed = user_can( (int) $post->post_author, self::embed_capability() );
 		} else {
 			$requested = is_admin() || wp_doing_ajax() || ( defined( 'REST_REQUEST' ) && REST_REQUEST );

@@ -103,12 +103,17 @@
 			copy.textContent = __( 'Copied', 'embed-drive' );
 			setTimeout( () => ( copy.textContent = label ), 1500 );
 		};
-		if ( navigator.clipboard ) {
-			navigator.clipboard.writeText( output.value ).then( done );
-		} else {
+		const failed = () => {
 			output.select();
-			document.execCommand( 'copy' );
-			done();
+			if ( document.execCommand( 'copy' ) ) {
+				done();
+			}
+		};
+		// The clipboard API is missing on plain http and can be refused, so there is always a fallback.
+		if ( navigator.clipboard ) {
+			navigator.clipboard.writeText( output.value ).then( done, failed );
+		} else {
+			failed();
 		}
 	} );
 

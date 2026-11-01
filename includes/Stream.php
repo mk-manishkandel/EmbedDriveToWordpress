@@ -97,7 +97,6 @@ final class Stream {
 			]
 		);
 		$ok = curl_exec( $ch );
-		curl_close( $ch );
 
 		if ( ! $started && ! ( 401 === $status && $retry_on_401 ) ) {
 			$on_headers( $status, $headers ); // Empty body.
@@ -139,7 +138,7 @@ final class Stream {
 
 		$status = (int) wp_remote_retrieve_response_code( $response );
 		if ( ! ( 401 === $status && $retry_on_401 ) ) {
-			$on_headers( $status, array_map( 'strval', wp_remote_retrieve_headers( $response )->getAll() ) );
+			$on_headers( $status, array_map( static fn( $value ) => is_array( $value ) ? implode( ', ', $value ) : (string) $value, wp_remote_retrieve_headers( $response )->getAll() ) );
 			if ( $status >= 200 && $status < 300 ) {
 				$handle = fopen( $temp, 'rb' ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fopen
 				while ( $handle && ! feof( $handle ) ) {

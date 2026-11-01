@@ -425,6 +425,7 @@ dialog.embed-drive-picker .button.button-primary:disabled {
 }
 
 .ed-account__avatar {
+	text-transform: uppercase;
 	display: flex;
 	flex: 0 0 auto;
 	align-items: center;

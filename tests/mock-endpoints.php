@@ -264,6 +264,33 @@ add_action(
 							}
 
 							return [ 'reply' => is_wp_error( $result ) ? $result->get_error_code() : ( is_string( $result ) ? 'file' : $result ), 'bytes' => $bytes ];
+						case 'role_probe':
+							$user = wp_insert_user( [ 'user_login' => 'r' . wp_rand(), 'user_pass' => wp_generate_password(), 'role' => (string) $r->get_param( 'role' ) ] );
+							wp_set_current_user( $user );
+							$account = (string) EmbedDrive\Accounts::default_id();
+							$browse  = new WP_REST_Request( 'GET', '/embed-drive/v1/admin/browse' );
+							$browse->set_param( 'account', $account );
+							$result = [
+								'browse'     => rest_do_request( $browse )->get_status(),
+								'embed'      => EmbedDrive\Modules::current_user_can_embed(),
+								'settings'   => current_user_can( 'manage_options' ),
+							];
+							wp_set_current_user( 0 );
+
+							return $result;
+						case 'widget_probe':
+							$author = wp_insert_user( [ 'user_login' => 'w' . wp_rand(), 'user_pass' => wp_generate_password(), 'role' => 'author' ] );
+							$post   = wp_insert_post( [ 'post_author' => $author, 'post_title' => 'w', 'post_status' => 'publish', 'post_content' => 'x' ] );
+							$GLOBALS['post'] = get_post( $post );
+							$code = '[embed_drive mode="files" folder="public"]';
+							do_action( 'dynamic_sidebar_before', 'test', true );
+							$widget = do_shortcode( $code );
+							$shown_post = apply_filters( 'the_content', $code );
+							do_action( 'dynamic_sidebar_after', 'test', true );
+							$after = do_shortcode( $code );
+							unset( $GLOBALS['post'] );
+
+							return [ 'in_widget' => '' !== $widget, 'post_in_widget' => false !== strpos( $shown_post, 'data-embed-drive' ), 'in_author_content' => '' !== $after ];
 						case 'set_rate':
 							update_option( 'embed_drive_test_rate', (int) $r->get_param( 'limit' ) );
 

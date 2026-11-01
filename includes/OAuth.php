@@ -119,7 +119,7 @@ final class OAuth {
 			self::finish( 'error', __( 'Google did not grant access.', 'embed-drive' ) );
 		}
 
-		$code = (string) wp_unslash( $_GET['code'] ); // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Opaque, sent only to the token endpoint.
+		$code = is_string( $_GET['code'] ) ? wp_unslash( $_GET['code'] ) : ''; // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Opaque, sent only to the token endpoint.
 		// phpcs:enable
 
 		$token = 'own' === $saved['via']
