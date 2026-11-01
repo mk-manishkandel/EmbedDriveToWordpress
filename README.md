@@ -77,7 +77,7 @@ Found a vulnerability? Please report it privately through [GitHub security advis
 
 ## Development
 
-There's no build step. Run the tests with Node 20+, `unzip` and `python3`; no PHP install is needed, as they run real WordPress in [WP Playground](https://github.com/WordPress/wordpress-playground) against a mock Google server:
+There's no build step. Run the tests with Node 24.18+, `unzip` and `python3`; no PHP install is needed, as they run real WordPress in [WP Playground](https://github.com/WordPress/wordpress-playground) against a mock Google server:
 
 ```sh
 tests/run.sh          # PHP 8.0, latest WordPress

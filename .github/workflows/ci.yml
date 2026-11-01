@@ -16,7 +16,7 @@ jobs:
       matrix:
         php: ['8.0', '8.4']
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - uses: shivammathur/setup-php@v2
         with:
           php-version: ${{ matrix.php }}
@@ -31,9 +31,9 @@ jobs:
       matrix:
         php: ['8.0', '8.4']
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
         with:
-          node-version: 22
+          node-version: 24
       - name: Run end-to-end tests
         run: tests/run.sh ${{ matrix.php }}

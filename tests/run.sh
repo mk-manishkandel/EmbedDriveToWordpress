@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Runs the end-to-end suite on real WordPress (WP Playground) against the mock Google server.
-# Usage: tests/run.sh [php-version] [wp-version]. Needs Node 20+, unzip and python3.
+# Usage: tests/run.sh [php-version] [wp-version]. Needs Node 24.18+, unzip and python3.
 set -euo pipefail
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 PHP_VERSION="${1:-8.0}"
@@ -28,5 +28,5 @@ node "$ROOT/tests/mock-google.mjs" &
 	--mount="$WORK/relay-test:/wordpress/relay-test" \
 	--blueprint="$WORK/blueprint.json") > "$WORK/server.log" 2>&1 &
 
-curl -s -o /dev/null --retry 80 --retry-delay 3 --retry-all-errors --max-time 20 http://127.0.0.1:9500/ || { cat "$WORK/server.log"; exit 1; }
+curl -s -o /dev/null --retry 200 --retry-delay 3 --retry-all-errors --max-time 20 http://127.0.0.1:9500/ || { cat "$WORK/server.log"; exit 1; }
 node "$ROOT/tests/e2e.mjs" http://127.0.0.1:9500 http://127.0.0.1:9400
