@@ -23,7 +23,14 @@ add_filter(
 	2
 );
 // Show the real cause of a fatal error in test output.
-add_filter( 'wp_php_error_message', static fn( $message, $error ) => $message . ' PHP: ' . wp_json_encode( $error ), 10, 2 );
+add_filter( 'wp_php_error_message', static fn( $message, $error ) => $message . ' STATE: ' . wp_json_encode(
+	[
+		'active'     => get_option( 'active_plugins' ),
+		'file'       => is_readable( WP_PLUGIN_DIR . '/embed-drive/includes/Accounts.php' ),
+		'bootstrap'  => defined( 'EMBED_DRIVE_FILE' ),
+		'autoloaders' => count( spl_autoload_functions() ),
+	]
+) . ' PHP: ' . wp_json_encode( $error ), 10, 2 );
 add_filter( 'embed_drive_relay_url', static fn() => (string) get_option( 'embed_drive_test_relay', '' ) );
 add_filter( 'embed_drive_thumbnail_hosts', static fn() => [ '127.0.0.1' ] );
 add_filter( 'embed_drive_allow_http_thumbnails', '__return_true' );

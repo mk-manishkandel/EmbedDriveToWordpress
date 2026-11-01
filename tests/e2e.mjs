@@ -47,7 +47,7 @@ async function it( name, fn ) {
 }
 
 const connected = await test_( 'connect' );
-assert.ok( connected.account, 'connect failed: ' + JSON.stringify( connected ).slice( -1500 ) );
+assert.ok( connected.account, 'connect failed: ' + JSON.stringify( connected ).slice( 0, 900 ) );
 const { account } = connected;
 const render = async ( code ) => ( await test_( 'render', { code } ) ).html;
 const files = tokenFrom( await render( '[embed_drive mode="files" folder="public"]' ) );
