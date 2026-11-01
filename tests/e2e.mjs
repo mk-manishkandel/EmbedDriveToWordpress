@@ -627,6 +627,100 @@ await it( 'the settings form saves a Google app, and the secret stays encrypted'
 	assert.ok( settings.client_secret && ! settings.client_secret.includes( 'owner-secret' ) );
 } );
 
+// Tests above leave the account disconnected.
+await test_( 'connect' );
+
+await it( 'SECURITY: low-level accounts cannot get a link from the block preview', async () => {
+	for ( const role of [ 'subscriber', 'contributor', 'author' ] ) {
+		const result = await test_( 'attack_contributor', { role } );
+		assert.equal( result.token, null, role );
+	}
+	assert.ok( ( await test_( 'attack_contributor', { role: 'editor' } ) ).token, 'editors still can' );
+} );
+
+await it( 'SECURITY: a file in the trash is gone', async () => {
+	const t = tokenFrom( await render( '[embed_drive mode="files" folder="public"]' ) ).token;
+	assert.equal( ( await get( 'file', { m: t, id: 'pub-trashed', disp: 'attachment' } ) ).status, 404 );
+	assert.equal( ( await get( 'file', { m: t, id: 'pub-dup1', disp: 'attachment' } ) ).status, 200 );
+} );
+
+await it( 'SECURITY: preview=no also blocks the large picture', async () => {
+	const t = tokenFrom( await render( '[embed_drive mode="files" folder="public" preview="no"]' ) ).token;
+	assert.equal( ( await get( 'thumb', { m: t, id: 'pub-img', large: 1 } ) ).status, 404 );
+	assert.equal( ( await get( 'thumb', { m: t, id: 'pub-img' } ) ).status, 200 );
+} );
+
+await it( 'SECURITY: redirects never carry the bearer token off Google', async () => {
+	const t = tokenFrom( await render( '[embed_drive mode="files" folder="redirects"]' ) ).token;
+	assert.equal( ( await get( 'thumb', { m: t, id: 'redir-away' } ) ).status, 404 );
+	assert.equal( ( await get( 'file', { m: t, id: 'redir-file', disp: 'attachment' } ) ).status, 502 );
+	assert.equal( ( await get( 'thumb', { m: t, id: 'redir-hop' } ) ).status, 200, 'a redirect within Google still works' );
+	const seen = await ( await fetch( MOCK + '/__log' ) ).json();
+	assert.deepEqual( seen.filter( ( l ) => l.path === '/__steal' && l.auth ), [] );
+} );
+
+await it( 'SECURITY: files and thumbnails are rate limited', async () => {
+	const t = tokenFrom( await render( '[embed_drive mode="files" folder="public"]' ) ).token;
+	await test_( 'set_rate', { limit: 2 } );
+	const codes = {};
+	for ( const route of [ 'thumb', 'file' ] ) {
+		codes[ route ] = [];
+		for ( let i = 0; i < 4; i++ ) {
+			const r = await get( route, { m: t, id: 'pub-img', disp: 'attachment' } );
+			codes[ route ].push( r.status );
+			await r.arrayBuffer();
+		}
+	}
+	await test_( 'set_rate', { limit: 0 } );
+	assert.ok( codes.thumb.includes( 429 ) && codes.file.includes( 429 ), JSON.stringify( codes ) );
+} );
+
+await it( 'SECURITY: an oversized ZIP selection is refused before calling Google', async () => {
+	const t = tokenFrom( await render( '[embed_drive mode="files" folder="public"]' ) ).token;
+	const before = ( await ( await fetch( MOCK + '/__log' ) ).json() ).length;
+	const ids = Array.from( { length: 500 }, ( _, i ) => `made-up-${ i }` );
+	const r = await fetch( api( 'zip/prepare' ) + '&m=' + t, {
+		method: 'POST',
+		headers: { 'Content-Type': 'application/json' },
+		body: JSON.stringify( { ids } ),
+	} );
+	assert.equal( r.status, 413 );
+	const after = ( await ( await fetch( MOCK + '/__log' ) ).json() ).length;
+	assert.ok( after - before < 3, `${ after - before } calls` );
+} );
+
+await it( 'SECURITY: array parameters are rejected cleanly', async () => {
+	const url = api( 'list' ) + '&m[]=x&folder[]=y&sort[]=z&cursor[]=q';
+	const r = await fetch( url );
+	assert.equal( r.status, 404 );
+	assert.doesNotMatch( await r.text(), /Warning|Array to string/ );
+} );
+
+await it( 'updater only accepts a package released from this repository', async () => {
+	await test_( 'github_mode', { mode: 'api_ok' } );
+	assert.equal( ( await test_( 'update_check' ) ).version, '9.9.7' );
+	await test_( 'github_mode', { mode: 'offsite' } );
+	const update = await test_( 'update_check' );
+	assert.doesNotMatch( update.package, /evil/ );
+	assert.match( update.package, /^https:\/\/github\.com\/.+\/releases\/download\/v9\.9\.8\/embed-drive\.zip$/ );
+	await test_( 'github_mode', { mode: '' } );
+} );
+
+await it( 'SECURITY: visitor links can be cancelled, by an admin only', async () => {
+	const old = tokenFrom( await render( '[embed_drive mode="files" folder="public"]' ) ).token;
+	const refused = await fetch( `${ SITE }/wp-admin/admin-post.php`, {
+		method: 'POST',
+		body: new URLSearchParams( { action: 'embed_drive_reset_links' } ),
+		redirect: 'manual',
+	} );
+	await refused.arrayBuffer();
+	assert.equal( ( await get( 'list', { m: old } ) ).status, 200, 'a visitor cannot reset them' );
+	await test_( 'reset_links' );
+	assert.equal( ( await get( 'list', { m: old } ) ).status, 404 );
+	const fresh = tokenFrom( await render( '[embed_drive mode="files" folder="public"]' ) ).token;
+	assert.equal( ( await get( 'list', { m: fresh } ) ).status, 200 );
+} );
+
 const log = await ( await fetch( MOCK + '/__log' ) ).json();
 await it( 'nothing was sent to any third party, and no write calls were made to Drive', async () => {
 	const writes = log.filter( ( l ) => l.path.startsWith( '/drive' ) && l.method !== 'GET' );

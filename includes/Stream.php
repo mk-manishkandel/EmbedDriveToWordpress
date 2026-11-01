@@ -61,7 +61,9 @@ final class Stream {
 			$ch,
 			[
 				CURLOPT_HTTPHEADER     => $request,
-				CURLOPT_FOLLOWLOCATION => true,
+				// Older cURL resends the Authorization header to whatever host a redirect names.
+				CURLOPT_FOLLOWLOCATION => version_compare( (string) curl_version()['version'], '7.58.0', '>=' ),
+				CURLOPT_UNRESTRICTED_AUTH => false,
 				CURLOPT_MAXREDIRS      => 5,
 				CURLOPT_REDIR_PROTOCOLS => CURLPROTO_HTTPS,
 				CURLOPT_CONNECTTIMEOUT => 15,
@@ -120,7 +122,7 @@ final class Stream {
 			$headers['Range'] = $range;
 		}
 
-		$response = wp_remote_get(
+		$response = self::get_with_bearer(
 			$url,
 			[
 				'timeout'  => 300,
@@ -151,6 +153,44 @@ final class Stream {
 		wp_delete_file( $temp );
 
 		return $status;
+	}
+
+	/**
+	 * Whether the account's bearer token may be sent to this URL.
+	 */
+	public static function is_google_url( string $url ): bool {
+		$host  = (string) wp_parse_url( $url, PHP_URL_HOST );
+		$https = 'https' === wp_parse_url( $url, PHP_URL_SCHEME ) || (bool) apply_filters( 'embed_drive_allow_http_thumbnails', false );
+		foreach ( (array) apply_filters( 'embed_drive_thumbnail_hosts', [ 'googleusercontent.com', 'google.com', 'googleapis.com' ] ) as $allowed ) {
+			if ( $https && ( $host === $allowed || str_ends_with( $host, '.' . $allowed ) ) ) {
+				return true;
+			}
+		}
+
+		return false;
+	}
+
+	/**
+	 * WordPress repeats request headers on a redirect, so a request carrying the bearer token
+	 * follows redirects itself and only to Google.
+	 *
+	 * @return array|WP_Error
+	 */
+	public static function get_with_bearer( string $url, array $args ) {
+		$args['redirection'] = 0;
+		for ( $hop = 0; $hop < 4; $hop++ ) {
+			$response = wp_remote_get( $url, $args );
+			$status   = (int) wp_remote_retrieve_response_code( $response );
+			if ( is_wp_error( $response ) || ! in_array( $status, [ 301, 302, 303, 307, 308 ], true ) ) {
+				return $response;
+			}
+			$url = \WP_Http::make_absolute_url( (string) wp_remote_retrieve_header( $response, 'location' ), $url );
+			if ( ! self::is_google_url( $url ) ) {
+				break;
+			}
+		}
+
+		return new WP_Error( 'unsafe_redirect', __( 'Could not reach Google Drive.', 'embed-drive' ) );
 	}
 
 	/**

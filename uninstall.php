@@ -16,6 +16,7 @@ foreach ( array_keys( (array) get_option( 'embed_drive_accounts', [] ) ) as $emb
 delete_option( 'embed_drive_accounts' );
 delete_option( 'embed_drive_settings' );
 delete_option( 'embed_drive_cache_gen' );
+delete_option( 'embed_drive_link_reset' );
 delete_option( 'embed_drive_log_schema' );
 delete_site_transient( 'embed_drive_latest_release' );
 wp_clear_scheduled_hook( 'embed_drive_daily' );

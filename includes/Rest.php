@@ -86,9 +86,9 @@ final class Rest {
 
 		$page = $drive->list_children(
 			end( $path )['id'],
-			(string) $request->get_param( 'sort' ),
-			(string) $request->get_param( 'order' ),
-			(string) $request->get_param( 'cursor' )
+			self::text_param( $request, 'sort' ),
+			self::text_param( $request, 'order' ),
+			substr( self::text_param( $request, 'cursor' ), 0, 4096 )
 		);
 		if ( is_wp_error( $page ) ) {
 			return self::visitor_error( $page );
@@ -126,7 +126,7 @@ final class Rest {
 		if ( empty( $module['s'] ) ) {
 			return self::denied();
 		}
-		$term = trim( sanitize_text_field( (string) $request->get_param( 'q' ) ) );
+		$term = trim( sanitize_text_field( self::text_param( $request, 'q' ) ) );
 		if ( mb_strlen( $term ) < 2 ) {
 			return new WP_Error( 'short_query', __( 'Please type at least 2 characters.', 'embed-drive' ), [ 'status' => 400 ] );
 		}
@@ -151,7 +151,10 @@ final class Rest {
 		if ( is_wp_error( $module ) ) {
 			return $module;
 		}
-		$disposition = (string) $request->get_param( 'disp' );
+		if ( ! self::within_rate( 'file', 600 ) ) {
+			return self::too_many();
+		}
+		$disposition = self::text_param( $request, 'disp' );
 		$inline      = 'inline' === $disposition;
 		$viewer      = 'viewer' === $disposition;
 		if ( $inline || $viewer ? empty( $module['p'] ) : empty( $module['d'] ) ) {
@@ -195,22 +198,22 @@ final class Rest {
 		if ( is_wp_error( $module ) ) {
 			return $module;
 		}
+		// The large picture stands in for a preview, so it is only for modules that allow them.
+		$large = (bool) $request->get_param( 'large' );
+		if ( $large && empty( $module['p'] ) ) {
+			return self::denied();
+		}
+		if ( ! self::within_rate( 'thumb', 1200 ) ) {
+			return self::too_many();
+		}
 		$file = self::locate_file( $module, self::id_param( $request, 'id' ) );
 		if ( is_wp_error( $file ) ) {
 			return $file;
 		}
 
-		$link = (string) ( $file['thumbnailLink'] ?? '' );
-		$host = (string) wp_parse_url( $link, PHP_URL_HOST );
 		// The account's bearer token goes with this request, so it must only ever go to Google.
-		$hosts = (array) apply_filters( 'embed_drive_thumbnail_hosts', [ 'googleusercontent.com', 'google.com', 'googleapis.com' ] );
-		$valid = false;
-		foreach ( $hosts as $allowed ) {
-			$valid = $valid || $host === $allowed || str_ends_with( $host, '.' . $allowed );
-		}
-		$scheme = (string) wp_parse_url( $link, PHP_URL_SCHEME );
-		$https  = 'https' === $scheme || (bool) apply_filters( 'embed_drive_allow_http_thumbnails', false );
-		if ( ! $valid || ! $https ) {
+		$link = (string) ( $file['thumbnailLink'] ?? '' );
+		if ( ! Stream::is_google_url( $link ) ) {
 			return new WP_Error( 'no_thumb', __( 'No thumbnail is available.', 'embed-drive' ), [ 'status' => 404 ] );
 		}
 
@@ -219,12 +222,11 @@ final class Rest {
 			return self::visitor_error( $token );
 		}
 		// Google's link asks for a small image, too soft for a thumbnail card.
-		$response = wp_remote_get(
-			(string) preg_replace( '/=s\d+$/', $request->get_param( 'large' ) ? '=s1600' : '=s480', $link ),
+		$response = Stream::get_with_bearer(
+			(string) preg_replace( '/=s\d+$/', $large ? '=s1600' : '=s480', $link ),
 			[
-				'timeout'     => 15,
-				'redirection' => 2,
-				'headers'     => [ 'Authorization' => 'Bearer ' . $token ],
+				'timeout' => 15,
+				'headers' => [ 'Authorization' => 'Bearer ' . $token ],
 			]
 		);
 		$type     = strtolower( (string) wp_remote_retrieve_header( $response, 'content-type' ) );
@@ -283,7 +285,7 @@ final class Rest {
 	}
 
 	public static function zip( WP_REST_Request $request ) {
-		$key  = preg_replace( '/[^A-Za-z0-9]/', '', (string) $request->get_param( 'key' ) );
+		$key  = preg_replace( '/[^A-Za-z0-9]/', '', self::text_param( $request, 'key' ) );
 		$job  = '' === $key ? false : get_transient( 'embed_drive_zip_' . $key );
 		if ( ! is_array( $job ) ) {
 			return new WP_Error( 'expired', __( 'This download link has expired. Please select the files again.', 'embed-drive' ), [ 'status' => 410 ] );
@@ -296,12 +298,12 @@ final class Rest {
 	}
 
 	public static function browse( WP_REST_Request $request ) {
-		$account = (string) $request->get_param( 'account' );
+		$account = self::text_param( $request, 'account' );
 		if ( ! Accounts::get( $account ) ) {
 			return new WP_Error( 'no_account', __( 'Choose a connected account first.', 'embed-drive' ), [ 'status' => 400 ] );
 		}
 		$drive  = new Drive( $account );
-		$parent = (string) $request->get_param( 'parent' );
+		$parent = self::text_param( $request, 'parent' );
 
 		if ( '' === $parent ) {
 			$items  = [
@@ -326,7 +328,7 @@ final class Rest {
 			if ( is_wp_error( $folder ) ) {
 				return $folder;
 			}
-			$page = $drive->list_children( $folder['id'], 'name', 'asc', (string) $request->get_param( 'page' ), 200 );
+			$page = $drive->list_children( $folder['id'], 'name', 'asc', self::text_param( $request, 'page' ), 200 );
 		}
 		if ( is_wp_error( $page ) ) {
 			return $page;
@@ -383,8 +385,11 @@ final class Rest {
 	 * @return array|WP_Error The verified module.
 	 */
 	private static function module( WP_REST_Request $request ) {
-		$module = Crypto::verify( (string) $request->get_param( 'm' ) );
+		$module = Crypto::verify( self::text_param( $request, 'm' ) );
 		if ( ! $module || ! isset( $module['a'], $module['r'], $module['m'] ) || ! Accounts::get( (string) $module['a'] ) ) {
+			return self::denied();
+		}
+		if ( Modules::token_version() !== (int) ( $module['v'] ?? 0 ) ) {
 			return self::denied();
 		}
 
@@ -410,7 +415,16 @@ final class Rest {
 	}
 
 	private static function id_param( WP_REST_Request $request, string $name ): string {
-		return self::clean_id( (string) $request->get_param( $name ) );
+		return self::clean_id( self::text_param( $request, $name ) );
+	}
+
+	/**
+	 * Query strings can carry arrays where a string is expected.
+	 */
+	private static function text_param( WP_REST_Request $request, string $name ): string {
+		$value = $request->get_param( $name );
+
+		return is_scalar( $value ) ? (string) $value : '';
 	}
 
 	public static function clean_id( $id ): string {

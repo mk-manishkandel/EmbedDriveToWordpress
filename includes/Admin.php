@@ -13,17 +13,22 @@ final class Admin {
 
 	const PER_PAGE = 50;
 
+	const ICON_PATH = 'M2 5.5A1.5 1.5 0 0 1 3.5 4h4.2l1.8 2h7A1.5 1.5 0 0 1 18 7.5v8a1.5 1.5 0 0 1-1.5 1.5h-13A1.5 1.5 0 0 1 2 15.5zM7.7 8.6 4.8 11.5l2.9 2.9 1-1-1.9-1.9 1.9-1.9zM12.3 8.6l-1 1 1.9 1.9-1.9 1.9 1 1 2.9-2.9z';
+
+	const MENU_ICON = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20"><path fill="black" fill-rule="evenodd" d="%s"/></svg>';
+
 	public static function boot(): void {
 		add_action( 'admin_menu', [ self::class, 'menu' ] );
 		add_action( 'admin_post_embed_drive_save', [ self::class, 'save' ] );
 		add_action( 'admin_post_embed_drive_disconnect', [ self::class, 'disconnect' ] );
 		add_action( 'admin_post_embed_drive_flush', [ self::class, 'flush' ] );
+		add_action( 'admin_post_embed_drive_reset_links', [ self::class, 'reset_links' ] );
 		add_action( 'admin_enqueue_scripts', [ self::class, 'assets' ] );
 		add_action( 'admin_notices', [ self::class, 'lost_access_notice' ] );
 	}
 
 	public static function menu(): void {
-		add_menu_page( 'Embed Drive', 'Embed Drive', 'edit_others_posts', 'embed-drive-builder', [ self::class, 'builder_page' ], 'dashicons-cloud', 81 );
+		add_menu_page( 'Embed Drive', 'Embed Drive', 'edit_others_posts', 'embed-drive-builder', [ self::class, 'builder_page' ], 'data:image/svg+xml;base64,' . base64_encode( sprintf( self::MENU_ICON, self::ICON_PATH ) ), 81 );
 		add_submenu_page( 'embed-drive-builder', __( 'Shortcode Builder', 'embed-drive' ), __( 'Shortcode Builder', 'embed-drive' ), 'edit_others_posts', 'embed-drive-builder', [ self::class, 'builder_page' ] );
 		add_submenu_page( 'embed-drive-builder', __( 'Accounts & Settings', 'embed-drive' ), __( 'Accounts & Settings', 'embed-drive' ), 'manage_options', 'embed-drive', [ self::class, 'settings_page' ] );
 		add_submenu_page( 'embed-drive-builder', __( 'Activity', 'embed-drive' ), __( 'Activity', 'embed-drive' ), 'manage_options', 'embed-drive-activity', [ self::class, 'activity_page' ] );
@@ -201,6 +206,13 @@ final class Admin {
 				<?php wp_nonce_field( 'embed_drive_flush' ); ?>
 				<p><button class="button"><?php esc_html_e( 'Clear file cache', 'embed-drive' ); ?></button>
 				<span class="description"><?php esc_html_e( 'Drive changes appear on your site within 5 minutes. Use this to see them straight away.', 'embed-drive' ); ?></span></p>
+			</form>
+
+			<form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>">
+				<input type="hidden" name="action" value="embed_drive_reset_links">
+				<?php wp_nonce_field( 'embed_drive_reset_links' ); ?>
+				<p><button class="button"><?php esc_html_e( 'Reset visitor links', 'embed-drive' ); ?></button>
+				<span class="description"><?php esc_html_e( 'Links to your files never expire. Reset them if one was shared where it should not be, or after you remove a module. Your pages keep working, but clear any page cache afterwards.', 'embed-drive' ); ?></span></p>
 			</form>
 		</div>
 		<?php
@@ -396,6 +408,12 @@ final class Admin {
 		self::back( 'disconnected', '' );
 	}
 
+	public static function reset_links(): void {
+		self::guard( 'embed_drive_reset_links' );
+		Modules::reset_links();
+		self::back( 'links_reset', '' );
+	}
+
 	public static function flush(): void {
 		self::guard( 'embed_drive_flush' );
 		Drive::flush_cache();
@@ -430,6 +448,7 @@ final class Admin {
 			'saved'        => __( 'Settings saved.', 'embed-drive' ),
 			'disconnected' => __( 'Account disconnected.', 'embed-drive' ),
 			'flushed'      => __( 'File cache cleared.', 'embed-drive' ),
+			'links_reset'  => __( 'Visitor links reset. If your site uses a page cache, clear it now.', 'embed-drive' ),
 			'error'        => $detail,
 		];
 		printf(

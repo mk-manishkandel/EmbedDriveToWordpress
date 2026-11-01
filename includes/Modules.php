@@ -13,6 +13,9 @@ final class Modules {
 
 	const MODES = [ 'files', 'search', 'embed', 'button', 'link' ];
 
+	/** Raising this cancels every visitor link made before it. */
+	const TOKEN_VERSION = 2;
+
 	public static function register(): void {
 		wp_register_style( 'embed-drive', EMBED_DRIVE_URL . 'assets/css/embed-drive.css', [], EMBED_DRIVE_VERSION );
 		wp_register_script( 'embed-drive', EMBED_DRIVE_URL . 'assets/js/embed-drive.js', [], EMBED_DRIVE_VERSION, true );
@@ -158,7 +161,7 @@ final class Modules {
 
 		$token = Crypto::sign(
 			[
-				'v' => 1,
+				'v' => self::token_version(),
 				'a' => $account,
 				'r' => $target,
 				'm' => $mode,
@@ -264,9 +267,29 @@ final class Modules {
 		return '<figure class="embed-drive-embed">' . $body . $footer . '</figure>';
 	}
 
+	public static function token_version(): int {
+		return self::TOKEN_VERSION + (int) get_option( 'embed_drive_link_reset', 0 );
+	}
+
+	/**
+	 * Cancel every visitor link. Pages get new ones the next time they render.
+	 */
+	public static function reset_links(): void {
+		update_option( 'embed_drive_link_reset', 1 + (int) get_option( 'embed_drive_link_reset', 0 ) );
+	}
+
+	/**
+	 * Widgets and templates render with no post, but so do the block preview and similar requests,
+	 * where the text comes from whoever is asking. That person must then be allowed to embed.
+	 */
 	private static function author_may_embed(): bool {
-		$post    = get_post();
-		$allowed = ! $post || user_can( (int) $post->post_author, self::embed_capability() );
+		$post = get_post();
+		if ( $post ) {
+			$allowed = user_can( (int) $post->post_author, self::embed_capability() );
+		} else {
+			$requested = is_admin() || wp_doing_ajax() || ( defined( 'REST_REQUEST' ) && REST_REQUEST );
+			$allowed   = ! $requested || self::current_user_can_embed();
+		}
 
 		return (bool) apply_filters( 'embed_drive_author_may_embed', $allowed, $post );
 	}

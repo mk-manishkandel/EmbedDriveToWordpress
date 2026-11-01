@@ -3,6 +3,18 @@
  * away from the site, because the documents are untrusted. The bytes arrive from the parent page.
  */
 ( function () {
+	// Any site can frame this file. Without the sandbox a document's script would run as this
+	// site, so refuse to draw anything unless the page really is sandboxed.
+	if ( window.origin !== 'null' ) {
+		return;
+	}
+
+	// The static policy can't name this folder, as it differs per site. Policies only ever add up.
+	const policy = document.createElement( 'meta' );
+	policy.httpEquiv = 'Content-Security-Policy';
+	policy.content = `script-src ${ new URL( 'lib/', location.href ).href }`;
+	document.head.append( policy );
+
 	const MAX_ROWS = 2000;
 	const root = document.getElementById( 'root' );
 

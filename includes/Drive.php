@@ -15,7 +15,7 @@ final class Drive {
 
 	const FOLDER_MIME   = 'application/vnd.google-apps.folder';
 	const SHORTCUT_MIME = 'application/vnd.google-apps.shortcut';
-	const FIELDS        = 'id,name,mimeType,size,modifiedTime,thumbnailLink,parents,permissionIds';
+	const FIELDS        = 'id,name,mimeType,size,modifiedTime,thumbnailLink,parents,permissionIds,trashed';
 	const MAX_DEPTH     = 64;
 	const SORTS         = [
 		'name'     => 'name',
@@ -33,10 +33,15 @@ final class Drive {
 	 * @return array|WP_Error
 	 */
 	public function get_file( string $id ) {
-		return $this->remember(
+		$file = $this->remember(
 			"file:$id",
 			fn() => $this->request( '/files/' . rawurlencode( $id ), [ 'fields' => self::FIELDS ] )
 		);
+
+		// Google still answers for a file in the trash, but its owner has taken it away.
+		return ! is_wp_error( $file ) && ! empty( $file['trashed'] )
+			? new WP_Error( 'not_found', __( 'File not found.', 'embed-drive' ), [ 'status' => 404 ] )
+			: $file;
 	}
 
 	/**

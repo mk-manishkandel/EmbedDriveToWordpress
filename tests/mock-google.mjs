@@ -29,6 +29,7 @@ const files = {
 	'pub-shared': [ 'shared.pptx', 'application/vnd.openxmlformats-officedocument.presentationml.presentation', 'public', body( 'PK-shared' ) ],
 	'pub-bad': [ 'broken.docx', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', 'public', body( 'not a real document' ) ],
 	'pub-csv': [ 'table.csv', 'text/csv', 'public', body( 'a,b' ) ],
+	'pub-trashed': [ 'deleted.txt', 'text/plain', 'public', body( 'owner deleted this' ) ],
 	'pub-big': [ 'big.bin', 'application/octet-stream', 'public', blob ],
 	'pub-html': [ 'evil.html', 'text/html', 'public', body( '<script>alert(1)</script>' ) ],
 	'pub-svg': [ 'evil.svg', 'image/svg+xml', 'public', body( '<svg onload="alert(1)"/>' ) ],
@@ -39,6 +40,10 @@ const files = {
 	'pub-traversal': [ '../../evil.txt', 'text/plain', 'public', body( 'traversal' ) ],
 	'pub-xss': [ '<img src=x onerror=window.__xss=1>.txt', 'text/plain', 'public', body( 'x' ) ],
 	'pub-broken': [ 'broken.txt', 'text/plain', 'public', 'FAIL' ],
+	redirects: [ 'Redirects', FOLDER, 'root-id' ],
+	'redir-away': [ 'away.png', 'image/png', 'redirects', body( 'x' ) ],
+	'redir-hop': [ 'hop.png', 'image/png', 'redirects', body( 'x' ) ],
+	'redir-file': [ 'away.txt', 'text/plain', 'redirects', body( 'x' ) ],
 	sub: [ 'Sub Folder', FOLDER, 'public' ],
 	'sub-file': [ "O'Brien notes.txt", 'text/plain', 'sub', body( 'nested needle content' ) ],
 	'only-folders': [ 'QAA Documents (All)', FOLDER, 'root-id' ],
@@ -60,6 +65,9 @@ function meta( id, port ) {
 	const m = { id, name, mimeType, modifiedTime: '2026-01-15T10:00:00.000Z', parents: parent ? [ parent ] : [] };
 	if ( Buffer.isBuffer( content ) ) {
 		m.size = String( content.length );
+	}
+	if ( id === 'pub-trashed' ) {
+		m.trashed = true;
 	}
 	if ( id === 'pub-shared' ) {
 		m.permissionIds = [ 'anyoneWithLink', '123' ];
@@ -87,6 +95,9 @@ function search( q, port ) {
 				return false;
 			}
 			if ( hideShortcuts && mime.endsWith( '.shortcut' ) ) {
+				return false;
+			}
+			if ( id === 'pub-trashed' ) {
 				return false;
 			}
 			if ( term ) {
@@ -177,6 +188,14 @@ const server = http.createServer( async ( req, res ) => {
 		return send( 200, { sub: '12345', email: 'owner@example.com', name: 'Drive Owner' } );
 	}
 
+	if ( url.pathname === '/thumb/redir-away' ) {
+		res.writeHead( 302, { Location: `http://localhost:${ port }/__steal` } );
+		return res.end();
+	}
+	if ( url.pathname === '/thumb/redir-hop' ) {
+		res.writeHead( 302, { Location: `http://127.0.0.1:${ port }/thumb/pub-img` } );
+		return res.end();
+	}
 	if ( url.pathname.startsWith( '/thumb/' ) ) {
 		res.writeHead( 200, { 'Content-Type': 'image/png' } );
 		return res.end( png );
@@ -211,6 +230,10 @@ const server = http.createServer( async ( req, res ) => {
 		}
 		if ( url.searchParams.get( 'alt' ) !== 'media' ) {
 			return send( 200, meta( id, port ) );
+		}
+		if ( id === 'redir-file' ) {
+			res.writeHead( 302, { Location: `http://localhost:${ port }/__steal` } );
+			return res.end();
 		}
 		const content = files[ id ][ 3 ];
 		if ( content === 'FAIL' ) {

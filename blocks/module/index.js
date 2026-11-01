@@ -160,6 +160,7 @@
 	}
 
 	registerBlockType( 'embed-drive/module', {
+		icon: el( 'svg', { xmlns: 'http://www.w3.org/2000/svg', viewBox: '0 0 20 20' }, el( 'path', { fillRule: 'evenodd', d: 'M2 5.5A1.5 1.5 0 0 1 3.5 4h4.2l1.8 2h7A1.5 1.5 0 0 1 18 7.5v8a1.5 1.5 0 0 1-1.5 1.5h-13A1.5 1.5 0 0 1 2 15.5zM7.7 8.6 4.8 11.5l2.9 2.9 1-1-1.9-1.9 1.9-1.9zM12.3 8.6l-1 1 1.9 1.9-1.9 1.9 1 1 2.9-2.9z' } ) ),
 		edit,
 		save: () => null,
 	} );

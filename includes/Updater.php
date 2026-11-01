@@ -51,6 +51,11 @@ final class Updater {
 		}
 
 		return [
+			'icons'        => [
+				'svg' => EMBED_DRIVE_URL . 'assets/icon/icon.svg',
+				'2x'  => EMBED_DRIVE_URL . 'assets/icon/icon-256x256.png',
+				'1x'  => EMBED_DRIVE_URL . 'assets/icon/icon-128x128.png',
+			],
 			'id'           => 'https://github.com/' . EMBED_DRIVE_REPO,
 			'slug'         => 'embed-drive',
 			'version'      => $release['version'],
@@ -133,13 +138,16 @@ final class Updater {
 				$package = (string) $asset['browser_download_url'];
 			}
 		}
-		if ( '' === $package ) {
+		// WordPress installs whatever this names, so it may only be a file released from this repository.
+		$version = ltrim( (string) ( $data['tag_name'] ?? '' ), 'vV' );
+		$release = 'https://github.com/' . EMBED_DRIVE_REPO . '/releases/';
+		if ( $release . 'download/v' . $version . '/' . self::ASSET !== $package || ! preg_match( '/^\d+\.\d+\.\d+$/', $version ) ) {
 			return null;
 		}
 
 		return [
-			'version' => ltrim( (string) ( $data['tag_name'] ?? '' ), 'vV' ),
-			'url'     => (string) ( $data['html_url'] ?? '' ),
+			'version' => $version,
+			'url'     => $release . 'tag/v' . $version,
 			'package' => $package,
 			'notes'   => (string) ( $data['body'] ?? '' ),
 		];

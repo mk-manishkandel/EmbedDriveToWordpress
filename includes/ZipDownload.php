@@ -27,6 +27,12 @@ final class ZipDownload {
 		$max_bytes = min( ZipWriter::MAX_BYTES, max( 1, (int) Settings::get( 'zip_max_mb' ) ) * MB_IN_BYTES );
 		$state     = [ 'entries' => [], 'bytes' => 0, 'names' => [] ];
 
+		// Each item costs Google API calls, so turn away an oversized selection before making any.
+		$ids = array_unique( $ids );
+		if ( count( $ids ) > $max_files ) {
+			return self::too_large( $max_files, $max_bytes );
+		}
+
 		foreach ( $ids as $id ) {
 			$path = $drive->path_from_root( $module['r'], $id );
 			if ( is_wp_error( $path ) || ! $path ) {
@@ -43,6 +49,19 @@ final class ZipDownload {
 		}
 
 		return $state['entries'];
+	}
+
+	private static function too_large( int $max_files, int $max_bytes ): WP_Error {
+		return new WP_Error(
+			'too_large',
+			sprintf(
+				/* translators: 1: number of files, 2: size in MB */
+				__( 'That selection is too big to download as a ZIP. The limit is %1$d files or %2$d MB.', 'embed-drive' ),
+				$max_files,
+				(int) ( $max_bytes / MB_IN_BYTES )
+			),
+			[ 'status' => 413 ]
+		);
 	}
 
 	private static function add( Drive $drive, array $file, string $prefix, array &$state, int $max_files, int $max_bytes, int $depth ): ?WP_Error {
@@ -76,16 +95,7 @@ final class ZipDownload {
 
 		$state['bytes'] += FileTypes::is_native( $mime ) ? self::EXPORT_ESTIMATE : (int) ( $file['size'] ?? 0 );
 		if ( count( $state['entries'] ) >= $max_files || $state['bytes'] > $max_bytes ) {
-			return new WP_Error(
-				'too_large',
-				sprintf(
-					/* translators: 1: number of files, 2: size in MB */
-					__( 'That selection is too big to download as a ZIP. The limit is %1$d files or %2$d MB.', 'embed-drive' ),
-					$max_files,
-					(int) ( $max_bytes / MB_IN_BYTES )
-				),
-				[ 'status' => 413 ]
-			);
+			return self::too_large( $max_files, $max_bytes );
 		}
 
 		$ext                = FileTypes::delivery( $mime, false )['ext'];

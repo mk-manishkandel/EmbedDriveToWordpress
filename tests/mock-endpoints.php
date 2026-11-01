@@ -32,6 +32,7 @@ add_filter( 'embed_drive_relay_url', static fn() => (string) get_option( 'embed_
 add_filter( 'embed_drive_thumbnail_hosts', static fn() => [ '127.0.0.1' ] );
 add_filter( 'embed_drive_allow_http_thumbnails', '__return_true' );
 add_filter( 'embed_drive_cache_ttl', static fn() => 0 );
+add_filter( 'embed_drive_rate_limit', static fn( $limit ) => (int) get_option( 'embed_drive_test_rate', 0 ) ?: $limit );
 add_filter( 'http_request_host_is_external', '__return_true' );
 add_filter( 'http_request_args', static function ( $args ) {
 	$args['reject_unsafe_urls'] = false;
@@ -55,6 +56,24 @@ add_filter(
 			'filename' => null,
 		];
 		if ( false !== strpos( $url, 'api.github.com' ) ) {
+			if ( in_array( $mode, [ 'offsite', 'api_ok' ], true ) ) {
+				$host = 'offsite' === $mode ? 'evil.example.test' : 'github.com';
+
+				return [
+					'body'     => wp_json_encode(
+						[
+							'tag_name' => 'v9.9.7',
+							'assets'   => [
+								[
+									'name'                 => 'embed-drive.zip',
+									'browser_download_url' => "https://$host/" . EMBED_DRIVE_REPO . '/releases/download/v9.9.7/embed-drive.zip',
+								],
+							],
+						]
+					),
+				] + $reply( 200 );
+			}
+
 			return $reply( 403 );
 		}
 		if ( str_ends_with( $url, '/releases/latest' ) ) {
@@ -112,6 +131,9 @@ add_action(
 						case 'ready':
 							return [ 'ok' => true ];
 						case 'render':
+							// This route is a REST request with no post, which the plugin refuses for visitors.
+							add_filter( 'embed_drive_author_may_embed', '__return_true' );
+
 							return [ 'html' => do_shortcode( (string) $r->get_param( 'code' ) ) ];
 						case 'render_as_post':
 							$author = wp_insert_user(
@@ -182,6 +204,28 @@ add_action(
 							return apply_filters( 'update_plugins_github.com', false, $data, plugin_basename( EMBED_DRIVE_FILE ), [] );
 						case 'seed_release':
 							set_site_transient( 'embed_drive_latest_release', (array) $r->get_param( 'release' ), HOUR_IN_SECONDS );
+
+							return [ 'ok' => true ];
+						case 'attack_contributor':
+							// A low-level account asks WordPress's block preview for a folder of its choosing.
+							$user = wp_insert_user( [ 'user_login' => 'c' . wp_rand(), 'user_pass' => wp_generate_password(), 'role' => (string) ( $r->get_param( 'role' ) ?: 'contributor' ) ] );
+							wp_set_current_user( $user );
+							$request = new WP_REST_Request( 'GET', '/wp/v2/block-renderer/embed-drive/module' );
+							$request->set_param( 'context', 'edit' );
+							$request->set_param( 'attributes', [ 'mode' => 'files', 'folder' => 'secret' ] );
+							$response = rest_do_request( $request );
+							$html     = (string) ( $response->get_data()['rendered'] ?? '' );
+							wp_set_current_user( 0 );
+							preg_match( '/data-embed-drive="([^"]+)"/', $html, $found );
+							$config = $found ? json_decode( html_entity_decode( $found[1] ), true ) : [];
+
+							return [ 'status' => $response->get_status(), 'token' => $config['token'] ?? null, 'html' => substr( $html, 0, 120 ) ];
+						case 'set_rate':
+							update_option( 'embed_drive_test_rate', (int) $r->get_param( 'limit' ) );
+
+							return [ 'ok' => true ];
+						case 'reset_links':
+							EmbedDrive\Modules::reset_links();
 
 							return [ 'ok' => true ];
 						case 'github_mode':

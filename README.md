@@ -1,3 +1,5 @@
+<img src="assets/icon/icon-128x128.png" width="64" height="64" alt="">
+
 # Embed Drive
 
 Show Google Drive folders and files on your WordPress site. Open source, with no licence keys, upsells or tracking.
@@ -75,6 +77,11 @@ Someone hosting sites for others can run the optional [sign-in relay](relay/READ
 - **Editors and above only.** A module in a post by a lower role won't display, as it could otherwise publish any file in the Drive. Change this with the `embed_drive_embed_capability` and `embed_drive_author_may_embed` filters.
 - **Credentials are encrypted** in the database with keys derived from your WordPress salts. Rotating the salts means signing in again. Define `EMBED_DRIVE_KEY` in `wp-config.php` to avoid that.
 - **Safe inline types only.** HTML, SVG and anything else outside a short allowlist is sent as a download, never rendered on your site's origin.
+- **Visitor links don't expire**, so cached pages keep working. **Accounts & Settings > Reset visitor links** cancels them all if one leaks or after you remove a module.
+- **Document previews stay sandboxed.** Word, Excel and PDF files are drawn in a frame with no access to your site, and the viewer refuses to run outside it.
+- **Updates come only from this repository's releases.** They aren't separately signed, so whoever controls the GitHub account controls what sites install. Keep two-factor sign-in on for it.
+
+What this can't protect against: a stolen WordPress admin or Editor login, another vulnerable plugin or theme, or a module pointed at a folder that shouldn't be public. Use two-factor sign-in for those accounts.
 
 Found a vulnerability? Please report it privately through [GitHub security advisories](https://github.com/mk-manishkandel/EmbedDriveToWordpress/security/advisories/new).
 

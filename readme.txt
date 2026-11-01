@@ -3,7 +3,7 @@ Tags: google drive, file browser, documents, download, embed
 Requires at least: 6.0
 Tested up to: 7.1
 Requires PHP: 8.0
-Stable tag: 0.3.1
+Stable tag: 0.3.2
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -60,6 +60,18 @@ A Drive shortcut can point to a file outside the chosen folder, so shortcuts are
 File lists are cached for 5 minutes. Use Clear file cache in the settings to refresh sooner.
 
 == Changelog ==
+
+= 0.3.2 =
+Security release. Please update, then clear any page cache: links on cached pages stop working until it is cleared.
+* Fixed: a logged-in Contributor or Author could use the block preview to get a link to any folder in the connected Drive.
+* Fixed: a file in Google Drive's trash could still be downloaded through an existing link.
+* Fixed: modules with previews off still served the large picture of a file.
+* The account's Google token can no longer follow a redirect away from Google.
+* Updates are only accepted from this project's own GitHub releases.
+* Previews refuse to run outside their sandbox, so another site can't use them to run a document's script.
+* Files and thumbnails are now rate limited per visitor, and oversized ZIP selections are refused sooner.
+* New button in Settings to cancel every visitor link.
+* New plugin icon.
 
 = 0.3.1 =
 * Theme button styles, such as colored backgrounds, no longer show through in the file browser.
