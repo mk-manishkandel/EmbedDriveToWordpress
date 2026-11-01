@@ -4,6 +4,10 @@
  * Description: Test-only must-use plugin. Points the plugin at the mock Google server.
  */
 
+// Playground's workers can briefly see the plugin as inactive just after boot, so load it directly.
+// WordPress skips it later because it uses include_once on this same path.
+require_once WP_PLUGIN_DIR . '/embed-drive/embed-drive.php';
+
 $embed_drive_mock = 'http://127.0.0.1:' . ( getenv( 'MOCK_PORT' ) ?: 9400 );
 
 add_filter(
@@ -23,14 +27,7 @@ add_filter(
 	2
 );
 // Show the real cause of a fatal error in test output.
-add_filter( 'wp_php_error_message', static fn( $message, $error ) => $message . ' STATE: ' . wp_json_encode(
-	[
-		'active'     => get_option( 'active_plugins' ),
-		'file'       => is_readable( WP_PLUGIN_DIR . '/embed-drive/includes/Accounts.php' ),
-		'bootstrap'  => defined( 'EMBED_DRIVE_FILE' ),
-		'autoloaders' => count( spl_autoload_functions() ),
-	]
-) . ' PHP: ' . wp_json_encode( $error ), 10, 2 );
+add_filter( 'wp_php_error_message', static fn( $message, $error ) => $message . ' PHP: ' . wp_json_encode( $error ), 10, 2 );
 add_filter( 'embed_drive_relay_url', static fn() => (string) get_option( 'embed_drive_test_relay', '' ) );
 add_filter( 'embed_drive_thumbnail_hosts', static fn() => [ '127.0.0.1' ] );
 add_filter( 'embed_drive_allow_http_thumbnails', '__return_true' );
@@ -85,8 +82,7 @@ add_action(
 
 							return [ 'ok' => true ];
 						case 'ready':
-							// The site answers before the blueprint has finished activating the plugin.
-							return class_exists( 'EmbedDrive\\Plugin' ) ? [ 'ok' => true ] : new WP_Error( 'starting', 'Plugin not active yet', [ 'status' => 503 ] );
+							return [ 'ok' => true ];
 						case 'render':
 							return [ 'html' => do_shortcode( (string) $r->get_param( 'code' ) ) ];
 						case 'render_as_post':
