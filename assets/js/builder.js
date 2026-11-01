@@ -11,10 +11,14 @@
 	const output = document.getElementById( 'ed-output' );
 	const copy = document.getElementById( 'ed-copy' );
 	const targetLabel = document.getElementById( 'ed-target' );
+	const targetRow = targetLabel.parentElement;
 	const accounts = window.EmbedDriveAccounts || [];
 	let target = null;
 
 	accounts.forEach( ( account ) => form.account.add( new Option( account.email, account.id ) ) );
+
+	// With one account there is nothing to choose.
+	document.getElementById( 'ed-account-field' ).hidden = accounts.length < 2;
 
 	const wantsFolder = () => [ 'files', 'search' ].includes( form.mode.value );
 
@@ -31,9 +35,11 @@
 		if ( ! target ) {
 			output.value = '';
 			copy.disabled = true;
-			targetLabel.textContent = __( 'Nothing chosen yet', 'embed-drive' );
+			targetRow.classList.remove( 'is-chosen' );
+			targetLabel.textContent = wantsFolder() ? __( 'No folder chosen yet', 'embed-drive' ) : __( 'No file chosen yet', 'embed-drive' );
 			return;
 		}
+		targetRow.classList.add( 'is-chosen' );
 		targetLabel.textContent = target.name;
 
 		let code = `[embed_drive mode="${ mode }"`;
@@ -48,6 +54,7 @@
 			code += form.order.value !== 'asc' ? attr( 'order', form.order.value ) : '';
 			code += form.zip.checked ? '' : attr( 'zip', 'no' );
 			code += form.search.checked ? '' : attr( 'search', 'no' );
+			code += attr( 'min_height', form.min_height.value );
 		}
 		if ( mode === 'files' || mode === 'search' ) {
 			code += form.download.checked ? '' : attr( 'download', 'no' );
@@ -106,9 +113,11 @@
 	} );
 
 	// Embeds keep downloads off unless asked for, matching the shortcode default.
-	form.mode.addEventListener( 'change', () => {
-		form.download.checked = form.mode.value !== 'embed';
-		build();
+	form.addEventListener( 'change', ( event ) => {
+		if ( event.target.name === 'mode' ) {
+			form.download.checked = form.mode.value !== 'embed';
+			build();
+		}
 	} );
 
 	build();

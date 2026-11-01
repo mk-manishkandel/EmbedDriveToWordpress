@@ -11,6 +11,23 @@
 		return element;
 	}
 
+	function glyph( path ) {
+		const ns = 'http://www.w3.org/2000/svg';
+		const svg = document.createElementNS( ns, 'svg' );
+		svg.setAttribute( 'viewBox', '0 0 24 24' );
+		svg.setAttribute( 'aria-hidden', 'true' );
+		svg.setAttribute( 'class', 'ed-glyph' );
+		const line = document.createElementNS( ns, 'path' );
+		line.setAttribute( 'd', path );
+		svg.append( line );
+		return svg;
+	}
+
+	const FOLDER = 'M3 7a2 2 0 0 1 2-2h4.2l2 2.2H19a2 2 0 0 1 2 2V18a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z';
+	const FILE = 'M7 3h7l5 5v11a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2zM14 3v5h5';
+	const CHEVRON = 'M10 7l5 5-5 5';
+	const CLOSE = 'M6 6l12 12M18 6L6 18';
+
 	/**
 	 * @param {Object}   options
 	 * @param {string}   options.account  Connected account id.
@@ -37,17 +54,31 @@
 				'div',
 				{ className: 'embed-drive-picker__head' },
 				node( 'h2', { textContent: want === 'folder' ? __( 'Choose a folder', 'embed-drive' ) : __( 'Choose a file', 'embed-drive' ) } ),
-				node( 'button', {
-					type: 'button',
-					className: 'button-link',
-					textContent: __( 'Close', 'embed-drive' ),
-					onclick: () => dialog.close(),
-				} )
+				node(
+					'button',
+					{
+						type: 'button',
+						className: 'embed-drive-picker__close',
+						ariaLabel: __( 'Close', 'embed-drive' ),
+						onclick: () => dialog.close(),
+					},
+					glyph( CLOSE )
+				)
 			),
 			crumbs,
 			status,
 			list,
-			node( 'div', { className: 'embed-drive-picker__foot' }, useFolder )
+			node(
+				'div',
+				{ className: 'embed-drive-picker__foot' },
+				node( 'button', {
+					type: 'button',
+					className: 'button',
+					textContent: __( 'Cancel', 'embed-drive' ),
+					onclick: () => dialog.close(),
+				} ),
+				useFolder
+			)
 		);
 		dialog.addEventListener( 'close', () => dialog.remove() );
 
@@ -83,19 +114,24 @@
 						return node(
 							'li',
 							null,
-							node( 'button', {
-								type: 'button',
-								className: 'embed-drive-picker__item',
-								textContent: ( isDir ? '📁 ' : '📄 ' ) + item.name,
-								onclick: () => {
-									if ( isDir ) {
-										trail.push( item );
-										load();
-									} else {
-										pick( item );
-									}
+							node(
+								'button',
+								{
+									type: 'button',
+									className: 'embed-drive-picker__item',
+									onclick: () => {
+										if ( isDir ) {
+											trail.push( item );
+											load();
+										} else {
+											pick( item );
+										}
+									},
 								},
-							} )
+								glyph( isDir ? FOLDER : FILE ),
+								node( 'span', { textContent: item.name } ),
+								isDir && glyph( CHEVRON )
+							)
 						);
 					} )
 			);

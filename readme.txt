@@ -3,7 +3,7 @@ Tags: google drive, file browser, documents, download, embed
 Requires at least: 6.0
 Tested up to: 7.1
 Requires PHP: 8.0
-Stable tag: 0.3.4
+Stable tag: 0.3.5
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -60,6 +60,11 @@ A Drive shortcut can point to a file outside the chosen folder, so shortcuts are
 File lists are cached for 5 minutes. Use Clear file cache in the settings to refresh sooner.
 
 == Changelog ==
+
+= 0.3.5 =
+* New look for the Shortcode Builder, Accounts & Settings and Activity screens, matching the file browser on your site.
+* The Shortcode Builder shows modules as cards, keeps your shortcode in view and can set a minimum height.
+* Copy buttons for the values you paste into Google's console, and a confirmation before resetting visitor links.
 
 = 0.3.4 =
 * The key that signs updates has been replaced. If you have 0.3.3, install this version by hand: download embed-drive.zip from the releases page, then use Plugins > Add New > Upload Plugin. Later updates install normally.
