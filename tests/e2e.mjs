@@ -46,18 +46,11 @@ async function it( name, fn ) {
 	}
 }
 
-const { account } = await test_( 'connect' );
+const connected = await test_( 'connect' );
+assert.ok( connected.account, 'connect failed: ' + JSON.stringify( connected ).slice( 0, 500 ) );
+const { account } = connected;
 const render = async ( code ) => ( await test_( 'render', { code } ) ).html;
-const firstRender = await render( '[embed_drive mode="files" folder="public"]' );
-if ( ! firstRender.includes( 'data-embed-drive' ) ) {
-	console.log( 'DIAG first render:', JSON.stringify( firstRender ) );
-	console.log( 'DIAG connect account:', account );
-	for ( let i = 0; i < 4; i++ ) {
-		console.log( `DIAG ${ i }:`, JSON.stringify( await test_( 'diagnose' ) ).slice( 0, 900 ) );
-		await new Promise( ( done ) => setTimeout( done, 1500 ) );
-	}
-}
-const files = tokenFrom( firstRender );
+const files = tokenFrom( await render( '[embed_drive mode="files" folder="public"]' ) );
 const m = files.token;
 
 await it( 'credentials are encrypted at rest', async () => {

@@ -29,10 +29,10 @@ node "$ROOT/tests/mock-google.mjs" &
 	--blueprint="$WORK/blueprint.json") > "$WORK/server.log" 2>&1 &
 SERVER=$!
 
-# First boot downloads WordPress, so allow several minutes.
+# First boot downloads WordPress, so allow several minutes. Wait for the plugin itself, not just the site.
 ready=""
 for _ in $(seq 1 120); do
-	if curl -sf -o /dev/null --max-time 20 http://127.0.0.1:9500/; then
+	if curl -sf -o /dev/null --max-time 20 -X POST -H 'Content-Type: application/json' -d '{"cmd":"ready"}' 'http://127.0.0.1:9500/?rest_route=/embed-drive-test/v1/do'; then
 		ready=1
 		break
 	fi
