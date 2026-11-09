@@ -22,11 +22,13 @@ final class Plugin {
 			Admin::boot();
 		}
 		OAuth::boot();
-		Updater::boot();
+		// The WordPress.org copy leaves the updater out, since WordPress.org delivers its updates.
+		if ( class_exists( Updater::class ) ) {
+			Updater::boot();
+		}
 	}
 
 	public static function init(): void {
-		load_plugin_textdomain( 'embed-drive', false, dirname( plugin_basename( EMBED_DRIVE_FILE ) ) . '/languages' );
 		ActivityLog::maybe_upgrade();
 		Modules::register();
 

@@ -29,6 +29,10 @@ Embed Drive asks Google for read-only access. Files are passed through your site
 
 Anyone who can see the page can see the files in its module. Embed Drive does not restrict modules by role or password, so don't point one at a folder you want to keep private.
 
+= Source code =
+
+The full source, including the unminified code of the bundled preview libraries and the script that builds them (`bin/build-viewer-libs.sh`), is on [GitHub](https://github.com/mk-manishkandel/EmbedDriveToWordpress). The libraries and their versions are listed in `assets/viewer/lib/README.md`.
+
 = External services =
 
 This plugin connects to these services:
@@ -40,8 +44,8 @@ This plugin connects to these services:
 
 == Installation ==
 
-1. Download `embed-drive.zip` from the [latest release](https://github.com/mk-manishkandel/EmbedDriveToWordpress/releases/latest).
-2. In WordPress, go to Plugins > Add New > Upload Plugin, and upload it.
+1. In WordPress, go to Plugins > Add New and search for Embed Drive.
+2. Install and activate it. (It can also be uploaded as `embed-drive.zip` from the [GitHub releases](https://github.com/mk-manishkandel/EmbedDriveToWordpress/releases/latest).)
 3. Go to Embed Drive > Accounts & Settings, create your own free Google app using the steps shown there, and sign in. You only do this once per site.
 4. Add the Embed Drive block to a page, or build a shortcode under Embed Drive > Shortcode Builder.
 

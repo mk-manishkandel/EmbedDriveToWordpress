@@ -62,6 +62,10 @@ final class Stream {
 			$request[] = 'Range: ' . $range;
 		}
 
+		// cURL directly, because the WordPress HTTP API can't pass on a file as it downloads: it would
+		// hold a large video in memory or on disk before the visitor got the first byte. The HTTP API
+		// is used below when cURL is missing.
+		// phpcs:disable WordPress.WP.AlternativeFunctions
 		$ch = curl_init( $url );
 		curl_setopt_array(
 			$ch,
@@ -103,6 +107,7 @@ final class Stream {
 			]
 		);
 		$ok = curl_exec( $ch );
+		// phpcs:enable WordPress.WP.AlternativeFunctions
 
 		if ( ! $started && ! ( 401 === $status && $retry_on_401 ) ) {
 			$on_headers( $status, $headers ); // Empty body.
@@ -172,6 +177,8 @@ final class Stream {
 	public static function is_google_url( string $url ): bool {
 		$host  = (string) wp_parse_url( $url, PHP_URL_HOST );
 		$https = 'https' === wp_parse_url( $url, PHP_URL_SCHEME ) || (bool) apply_filters( 'embed_drive_allow_http_thumbnails', false );
+		// Where the account's token may be sent. Thumbnails are passed through this site, not loaded from Google.
+		// phpcs:ignore PluginCheck.CodeAnalysis.Offloading.OffloadedContent
 		foreach ( (array) apply_filters( 'embed_drive_thumbnail_hosts', [ 'googleusercontent.com', 'google.com', 'googleapis.com' ] ) as $allowed ) {
 			if ( $https && ( $host === $allowed || str_ends_with( $host, '.' . $allowed ) ) ) {
 				return true;
@@ -277,8 +284,9 @@ final class Stream {
 		while ( ob_get_level() > 0 ) {
 			ob_end_clean();
 		}
+		// Large files take longer to pass on than PHP's usual time limit allows.
 		if ( function_exists( 'set_time_limit' ) ) {
-			@set_time_limit( 0 ); // phpcs:ignore WordPress.PHP.NoSilencedErrors.Discouraged -- Often disabled on shared hosts.
+			@set_time_limit( 0 ); // phpcs:ignore WordPress.PHP.NoSilencedErrors.Discouraged, Squiz.PHP.DiscouragedFunctions.Discouraged -- Often disabled on shared hosts.
 		}
 		ignore_user_abort( false );
 		nocache_headers();

@@ -75,7 +75,7 @@ final class ActivityLog {
 		global $wpdb;
 		$days  = max( 1, (int) Settings::get( 'log_days' ) );
 		$table = self::table();
-		$wpdb->query( $wpdb->prepare( "DELETE FROM $table WHERE created_at < %s", gmdate( 'Y-m-d H:i:s', time() - $days * DAY_IN_SECONDS ) ) ); // phpcs:ignore WordPress.DB
+		$wpdb->query( $wpdb->prepare( "DELETE FROM $table WHERE created_at < %s", gmdate( 'Y-m-d H:i:s', time() - $days * DAY_IN_SECONDS ) ) ); // phpcs:ignore WordPress.DB, PluginCheck.Security.DirectDB.UnescapedDBParameter -- The plugin's own table.
 	}
 
 	/**
@@ -86,7 +86,8 @@ final class ActivityLog {
 		$table = self::table();
 		$where = '' === $event ? '1=1' : $wpdb->prepare( 'event = %s', $event );
 
-		// phpcs:disable WordPress.DB
+		// The table name is the plugin's own, built from $wpdb->prefix.
+		// phpcs:disable WordPress.DB, PluginCheck.Security.DirectDB.UnescapedDBParameter
 		$total = (int) $wpdb->get_var( "SELECT COUNT(*) FROM $table WHERE $where" );
 		$rows  = $wpdb->get_results(
 			$wpdb->prepare( "SELECT * FROM $table WHERE $where ORDER BY id DESC LIMIT %d OFFSET %d", $per_page, max( 0, $page - 1 ) * $per_page ),
@@ -105,7 +106,8 @@ final class ActivityLog {
 		$table = self::table();
 		$since = gmdate( 'Y-m-d H:i:s', time() - 30 * DAY_IN_SECONDS );
 
-		// phpcs:disable WordPress.DB
+		// The table name is the plugin's own, built from $wpdb->prefix.
+		// phpcs:disable WordPress.DB, PluginCheck.Security.DirectDB.UnescapedDBParameter
 		$counts = $wpdb->get_results( $wpdb->prepare( "SELECT event, COUNT(*) AS total FROM $table WHERE created_at >= %s GROUP BY event", $since ), ARRAY_A );
 		$top    = $wpdb->get_results( $wpdb->prepare( "SELECT detail, COUNT(*) AS total FROM $table WHERE created_at >= %s AND event = 'download' GROUP BY file_id, detail ORDER BY total DESC LIMIT 10", $since ), ARRAY_A );
 		// phpcs:enable
