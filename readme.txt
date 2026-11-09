@@ -1,9 +1,10 @@
 === Embed Drive ===
+Contributors: kandelmanish
 Tags: google drive, file browser, documents, download, embed
 Requires at least: 6.0
 Tested up to: 7.1
 Requires PHP: 8.0
-Stable tag: 0.4.0
+Stable tag: 0.4.1
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -64,6 +65,9 @@ A Drive shortcut can point to a file outside the chosen folder, so shortcuts are
 File lists are cached for 5 minutes. Use Clear file cache in the settings to refresh sooner.
 
 == Changelog ==
+
+= 0.4.1 =
+* Added the WordPress.org contributor name. No changes to how the plugin works.
 
 = 0.4.0 =
 * Prepared for the WordPress.org plugin directory. Each release now also includes `embed-drive-wordpress-org.zip`, the copy for WordPress.org, which leaves out the GitHub updater.
