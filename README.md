@@ -6,10 +6,12 @@ Show Google Drive folders and files on your WordPress site. Open source, with no
 
 **[Download the latest release](https://github.com/mk-manishkandel/EmbedDriveToWordpress/releases/latest)** (`embed-drive.zip`). After you install it, updates appear on your Plugins screen like any other plugin.
 
+The plugin has been submitted to the WordPress.org plugin directory and is waiting for review. Once it's approved, you'll also be able to install it from **Plugins > Add New**.
+
 ## Features
 
 - File browser with list and grid views, breadcrumbs and sorting
-- Previews for images, PDFs, audio, video, text and Google Docs
+- Previews for images, PDFs, Word and Excel files, audio, video, text and Google Docs
 - Search across a folder and its subfolders
 - Single-file embeds, download buttons and links
 - Single-file and streaming ZIP downloads
@@ -79,7 +81,8 @@ Someone hosting sites for others can run the optional [sign-in relay](relay/READ
 - **Safe inline types only.** HTML, SVG and anything else outside a short allowlist is sent as a download, never rendered on your site's origin.
 - **Visitor links don't expire**, so cached pages keep working. **Accounts & Settings > Reset visitor links** cancels them all if one leaks or after you remove a module.
 - **Document previews stay sandboxed.** Word, Excel and PDF files are drawn in a frame with no access to your site, and the viewer refuses to run outside it.
-- **Updates are signed.** A site installs an update only if it comes from this repository's releases and carries a signature from the maintainer's private key, which is never stored on GitHub. Installing a ZIP by hand skips this check, so only use ZIPs from the releases page.
+- **Updates are signed.** A site installed from this repository installs an update only if it comes from its releases and carries a signature from the maintainer's private key, which is never stored on GitHub. Installing a ZIP by hand skips this check, so only use ZIPs from the releases page. The WordPress.org copy has no updater of its own and gets its updates from WordPress.org.
+- **Checked every week.** A scheduled GitHub workflow looks up the bundled preview libraries in GitHub's security advisories and runs the full tests on the latest WordPress, so the maintainer hears about new flaws or breakage.
 
 What this can't protect against: a stolen WordPress admin or Editor login, another vulnerable plugin or theme, or a module pointed at a folder that shouldn't be public. Use two-factor sign-in for those accounts.
 
@@ -90,9 +93,12 @@ Found a vulnerability? Please report it privately through [GitHub security advis
 There's no build step. Run the tests with Node 24.18+, `unzip` and `python3`; no PHP install is needed, as they run real WordPress in [WP Playground](https://github.com/WordPress/wordpress-playground) against a mock Google server:
 
 ```sh
-tests/run.sh          # PHP 8.0, latest WordPress
-tests/run.sh 8.4      # A specific PHP version
+tests/run.sh             # PHP 8.0, latest WordPress
+tests/run.sh 8.4         # A specific PHP version
+node bin/check-libs.mjs  # Look up the bundled libraries in GitHub's security advisories
 ```
+
+`bin/build-zip.sh` builds the plugin, and `bin/build-zip.sh --wordpress-org` builds the WordPress.org copy, which leaves out the GitHub updater as WordPress.org requires. Check that copy with the [Plugin Check](https://wordpress.org/plugins/plugin-check/) plugin before submitting it.
 
 ### Releasing an update
 
@@ -101,7 +107,7 @@ tests/run.sh 8.4      # A specific PHP version
    ```sh
    git tag v1.2.3 && git push origin main v1.2.3
    ```
-3. GitHub Actions runs the tests, checks that the versions match the tag, builds `embed-drive.zip` and creates a **draft** release, which sites can't see yet.
+3. GitHub Actions runs the tests, checks that the versions match the tag, builds `embed-drive.zip` and `embed-drive-wordpress-org.zip`, and creates a **draft** release, which sites can't see yet.
 4. Sign and publish it on your own computer, with the private key:
    ```sh
    node bin/sign-release.mjs 1.2.3 ~/embed-drive-signing.pem
