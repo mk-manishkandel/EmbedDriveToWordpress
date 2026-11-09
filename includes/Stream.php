@@ -14,6 +14,15 @@ defined( 'ABSPATH' ) || exit;
 final class Stream {
 
 	/**
+	 * How much of a file is fetched from Google per request. Large files and videos are passed on
+	 * piece by piece, so the visitor gets the first bytes quickly and the site never holds more than
+	 * one piece in memory.
+	 */
+	private static function piece_size(): int {
+		return max( 262144, (int) apply_filters( 'embed_drive_stream_piece_size', 8 * 1048576 ) );
+	}
+
+	/**
 	 * Fetch Drive content, passing bytes to $on_chunk as they arrive.
 	 *
 	 * @param callable $on_headers fn(int $status, array $headers) called once before the first byte.
@@ -23,152 +32,155 @@ final class Stream {
 	public static function fetch( string $account, array $file, bool $inline, string $range, callable $on_headers, callable $on_chunk ) {
 		$delivery = FileTypes::delivery( (string) $file['mimeType'], $inline );
 		$base     = OAuth::endpoint( 'drive' ) . '/files/' . rawurlencode( $file['id'] );
-		$url      = null !== $delivery['export']
+		$export   = null !== $delivery['export'];
+		$url      = $export
 			? $base . '/export?' . http_build_query( [ 'mimeType' => $delivery['export'] ], '', '&', PHP_QUERY_RFC3986 )
 			: $base . '?alt=media&supportsAllDrives=true';
 
+		// Google limits exports to 10 MB and can't send part of one, so an export is a single request.
+		if ( $export ) {
+			$response = self::request( $account, $url, '', true );
+
+			return is_wp_error( $response ) ? $response : self::pass_on( $response, $on_headers, $on_chunk );
+		}
+
+		// What the visitor asked for: from $first to $last (null for the end), or the final $suffix bytes.
+		$asked  = '' !== $range;
+		$first  = 0;
+		$last   = null;
+		$suffix = null;
+		if ( preg_match( '/^bytes=(\d*)-(\d*)$/', $range, $m ) && ( '' !== $m[1] || '' !== $m[2] ) ) {
+			if ( '' === $m[1] ) {
+				$suffix = (int) $m[2];
+			} else {
+				$first = (int) $m[1];
+				$last  = '' === $m[2] ? null : (int) $m[2];
+			}
+		} else {
+			$asked = false;
+		}
+
+		$piece = self::piece_size();
+		$want  = null === $suffix ? $first . '-' . ( null === $last ? $first + $piece - 1 : min( $last, $first + $piece - 1 ) ) : '-' . min( $suffix, $piece );
+		$reply = self::request( $account, $url, 'bytes=' . $want, true );
+		if ( is_wp_error( $reply ) ) {
+			return $reply;
+		}
+		$status = (int) wp_remote_retrieve_response_code( $reply );
+
+		// An empty file has no bytes to ask for, so Google says the range can't be met.
+		if ( 416 === $status && ! $asked ) {
+			$reply = self::request( $account, $url, '', true );
+
+			return is_wp_error( $reply ) ? $reply : self::pass_on( $reply, $on_headers, $on_chunk );
+		}
+		$got = self::content_range( $reply );
+		if ( 206 !== $status || null === $got ) {
+			return self::pass_on( $reply, $on_headers, $on_chunk ); // The whole file, or an error.
+		}
+
+		[ $from, $to, $total ] = $got;
+		if ( null !== $suffix ) {
+			$first = max( 0, $total - $suffix );
+			if ( $suffix > $piece ) {
+				// The final bytes are more than one piece, so start again from where they begin.
+				return self::fetch( $account, $file, $inline, 'bytes=' . $first . '-', $on_headers, $on_chunk );
+			}
+		}
+		$last = null === $last ? $total - 1 : min( $last, $total - 1 );
+
+		$on_headers(
+			$asked ? 206 : 200,
+			$asked
+				? [ 'content-length' => (string) ( $last - $first + 1 ), 'content-range' => "bytes $first-$last/$total" ]
+				: [ 'content-length' => (string) $total ]
+		);
+		$on_chunk( (string) wp_remote_retrieve_body( $reply ) );
+		unset( $reply );
+
+		for ( $next = $to + 1; $next <= $last && $next > $from; $next = $to + 1 ) {
+			$reply = self::request( $account, $url, 'bytes=' . $next . '-' . min( $last, $next + $piece - 1 ), false );
+			$got   = is_wp_error( $reply ) ? null : self::content_range( $reply );
+			if ( null === $got || 206 !== (int) wp_remote_retrieve_response_code( $reply ) || $got[0] !== $next ) {
+				return new WP_Error( 'network', __( 'Could not reach Google Drive.', 'filefolio' ) );
+			}
+			[ $from, $to ] = $got;
+			$on_chunk( (string) wp_remote_retrieve_body( $reply ) );
+			unset( $reply );
+		}
+
+		return $asked ? 206 : 200;
+	}
+
+	/**
+	 * One request to Drive, signing in again once if Google no longer accepts the access token.
+	 *
+	 * @param bool $first Whether this opens the transfer; only then is a failure noted for the health email.
+	 * @return array|WP_Error
+	 */
+	private static function request( string $account, string $url, string $range, bool $first ) {
 		for ( $attempt = 0; $attempt < 2; $attempt++ ) {
 			$token = Accounts::access_token( $account, $attempt > 0 );
 			if ( is_wp_error( $token ) ) {
 				return $token;
 			}
+			$headers = [ 'Authorization' => 'Bearer ' . $token ];
+			if ( '' !== $range ) {
+				$headers['Range'] = $range;
+			}
 
-			$transport = function_exists( 'curl_init' ) ? 'curl' : 'wp_http';
-			$status    = self::$transport( $url, $token, $range, $on_headers, $on_chunk, 0 === $attempt );
+			$response = self::get_with_bearer(
+				$url,
+				[
+					'timeout' => 120,
+					'headers' => $headers,
+				]
+			);
+			if ( is_wp_error( $response ) ) {
+				Health::record( 'network' );
+
+				return new WP_Error( 'network', __( 'Could not reach Google Drive.', 'filefolio' ) );
+			}
+			$status = (int) wp_remote_retrieve_response_code( $response );
 			if ( 401 !== $status ) {
 				// Google refuses to export anything over 10 MB, which is about the file and not the connection.
-				if ( is_int( $status ) && ! ( 403 === $status && null !== $delivery['export'] ) ) {
+				if ( $first && ! ( 403 === $status && false !== strpos( $url, '/export?' ) ) ) {
 					Health::record_status( $status );
 				}
 
-				return $status;
+				return $response;
 			}
 		}
 		Health::record_status( 401 );
 
-		return 401;
+		return $response;
 	}
 
 	/**
-	 * @return int|WP_Error
+	 * Passes a single response on as it is.
 	 */
-	private static function curl( string $url, string $token, string $range, callable $on_headers, callable $on_chunk, bool $retry_on_401 ) {
-		$headers = [];
-		$status  = 0;
-		$started = false;
-
-		$request = [ 'Authorization: Bearer ' . $token ];
-		if ( '' !== $range ) {
-			$request[] = 'Range: ' . $range;
-		}
-
-		// cURL directly, because the WordPress HTTP API can't pass on a file as it downloads: it would
-		// hold a large video in memory or on disk before the visitor got the first byte. The HTTP API
-		// is used below when cURL is missing.
-		// phpcs:disable WordPress.WP.AlternativeFunctions
-		$ch = curl_init( $url );
-		curl_setopt_array(
-			$ch,
-			[
-				CURLOPT_HTTPHEADER     => $request,
-				// Older cURL resends the Authorization header to whatever host a redirect names.
-				CURLOPT_FOLLOWLOCATION => version_compare( (string) curl_version()['version'], '7.58.0', '>=' ),
-				CURLOPT_UNRESTRICTED_AUTH => false,
-				CURLOPT_MAXREDIRS      => 5,
-				CURLOPT_REDIR_PROTOCOLS => CURLPROTO_HTTPS,
-				CURLOPT_CONNECTTIMEOUT => 15,
-				CURLOPT_LOW_SPEED_LIMIT => 1,
-				CURLOPT_LOW_SPEED_TIME => 60,
-				CURLOPT_HEADERFUNCTION => static function ( $ch, $line ) use ( &$headers, &$status ) {
-					if ( preg_match( '#^HTTP/\S+\s+(\d{3})#', $line, $m ) ) {
-						$status  = (int) $m[1];
-						$headers = []; // A redirect starts a new header block.
-					} elseif ( false !== strpos( $line, ':' ) ) {
-						[ $name, $value ]                    = explode( ':', $line, 2 );
-						$headers[ strtolower( trim( $name ) ) ] = trim( $value );
-					}
-
-					return strlen( $line );
-				},
-				CURLOPT_WRITEFUNCTION  => static function ( $ch, $bytes ) use ( &$headers, &$status, &$started, $on_headers, $on_chunk, $retry_on_401 ) {
-					if ( 401 === $status && $retry_on_401 ) {
-						return strlen( $bytes ); // Discard the body; the caller refreshes and retries.
-					}
-					if ( ! $started ) {
-						$started = true;
-						$on_headers( $status, $headers );
-					}
-					if ( $status >= 200 && $status < 300 ) {
-						$on_chunk( $bytes );
-					}
-
-					return strlen( $bytes );
-				},
-			]
-		);
-		$ok = curl_exec( $ch );
-		// phpcs:enable WordPress.WP.AlternativeFunctions
-
-		if ( ! $started && ! ( 401 === $status && $retry_on_401 ) ) {
-			$on_headers( $status, $headers ); // Empty body.
-		}
-
-		if ( false === $ok ) {
-			// Once bytes are flowing, a stop can just as well be a slow visitor hitting the time limit.
-			if ( ! $started ) {
-				Health::record( 'network' );
-			}
-
-			return new WP_Error( 'network', __( 'Could not reach Google Drive.', 'filefolio' ) );
+	private static function pass_on( array $response, callable $on_headers, callable $on_chunk ): int {
+		$status  = (int) wp_remote_retrieve_response_code( $response );
+		$headers = array_map( static fn( $value ) => is_array( $value ) ? implode( ', ', $value ) : (string) $value, wp_remote_retrieve_headers( $response )->getAll() );
+		$on_headers( $status, $headers );
+		if ( $status >= 200 && $status < 300 ) {
+			$on_chunk( (string) wp_remote_retrieve_body( $response ) );
 		}
 
 		return $status;
 	}
 
 	/**
-	 * Fallback for hosts without cURL: download to a temporary file, then pass it on.
+	 * The first byte, last byte and total size from a partial response's Content-Range header.
 	 *
-	 * @return int|WP_Error
+	 * @return int[]|null
 	 */
-	private static function wp_http( string $url, string $token, string $range, callable $on_headers, callable $on_chunk, bool $retry_on_401 ) {
-		$temp    = wp_tempnam( 'embed-drive' );
-		$headers = [ 'Authorization' => 'Bearer ' . $token ];
-		if ( '' !== $range ) {
-			$headers['Range'] = $range;
+	private static function content_range( array $response ): ?array {
+		if ( ! preg_match( '#^bytes (\d+)-(\d+)/(\d+)$#', trim( (string) wp_remote_retrieve_header( $response, 'content-range' ) ), $m ) ) {
+			return null;
 		}
 
-		$response = self::get_with_bearer(
-			$url,
-			[
-				'timeout'  => 300,
-				'stream'   => true,
-				'filename' => $temp,
-				'headers'  => $headers,
-			]
-		);
-		if ( is_wp_error( $response ) ) {
-			wp_delete_file( $temp );
-			Health::record( 'network' );
-
-			return new WP_Error( 'network', __( 'Could not reach Google Drive.', 'filefolio' ) );
-		}
-
-		$status = (int) wp_remote_retrieve_response_code( $response );
-		if ( ! ( 401 === $status && $retry_on_401 ) ) {
-			$on_headers( $status, array_map( static fn( $value ) => is_array( $value ) ? implode( ', ', $value ) : (string) $value, wp_remote_retrieve_headers( $response )->getAll() ) );
-			if ( $status >= 200 && $status < 300 ) {
-				$handle = fopen( $temp, 'rb' ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fopen
-				while ( $handle && ! feof( $handle ) ) {
-					$on_chunk( (string) fread( $handle, 1048576 ) ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fread
-				}
-				if ( $handle ) {
-					fclose( $handle ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fclose
-				}
-			}
-		}
-		wp_delete_file( $temp );
-
-		return $status;
+		return [ (int) $m[1], (int) $m[2], (int) $m[3] ];
 	}
 
 	/**
@@ -199,7 +211,7 @@ final class Stream {
 	public static function get_with_bearer( string $url, array $args ) {
 		$args['redirection'] = 0;
 		for ( $hop = 0; $hop < 4; $hop++ ) {
-			$response = wp_remote_get( $url, $args );
+			$response = wp_safe_remote_get( $url, $args );
 			$status   = (int) wp_remote_retrieve_response_code( $response );
 			if ( is_wp_error( $response ) || ! in_array( $status, [ 301, 302, 303, 307, 308 ], true ) ) {
 				return $response;

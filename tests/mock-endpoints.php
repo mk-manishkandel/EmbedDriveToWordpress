@@ -32,6 +32,8 @@ add_filter( 'embed_drive_relay_url', static fn() => (string) get_option( 'embed_
 add_filter( 'embed_drive_thumbnail_hosts', static fn() => [ '127.0.0.1' ] );
 add_filter( 'embed_drive_allow_http_thumbnails', '__return_true' );
 add_filter( 'embed_drive_cache_ttl', static fn() => 0 );
+// Small pieces, so the 3 MB test file arrives in many and the joins between them are checked.
+add_filter( 'embed_drive_stream_piece_size', static fn() => 262144 );
 add_filter( 'embed_drive_update_key', static fn( $key ) => get_option( 'embed_drive_test_update_key' ) ?: $key );
 add_filter( 'embed_drive_rate_limit', static fn( $limit ) => (int) get_option( 'embed_drive_test_rate', 0 ) ?: $limit );
 add_filter( 'http_request_host_is_external', '__return_true' );

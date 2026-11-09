@@ -212,6 +212,8 @@ await it( 'downloads the exact bytes as an attachment', async () => {
 	assert.equal( r.status, 200 );
 	const buf = Buffer.from( await r.arrayBuffer() );
 	assert.equal( buf.length, 3 * 1024 * 1024 );
+	assert.ok( buf.equals( Buffer.alloc( 3 * 1024 * 1024, 'abcdefghij' ) ), 'every piece arrives, in order' );
+	assert.equal( r.headers.get( 'content-length' ), String( 3 * 1024 * 1024 ) );
 	assert.match( r.headers.get( 'content-disposition' ), /attachment; filename="big.bin"/ );
 } );
 await it( 'supports range requests for seeking in media', async () => {
@@ -219,6 +221,26 @@ await it( 'supports range requests for seeking in media', async () => {
 	assert.equal( r.status, 206 );
 	assert.equal( r.headers.get( 'content-range' ), `bytes 10-19/${ 3 * 1024 * 1024 }` );
 	assert.equal( Buffer.from( await r.arrayBuffer() ).toString(), 'abcdefghij' );
+
+	const size = 3 * 1024 * 1024;
+	const whole = Buffer.alloc( size, 'abcdefghij' );
+	for ( const [ asked, from, to ] of [
+		[ 'bytes=262140-262159', 262140, 262159 ], // Across the join between two pieces.
+		[ 'bytes=3000000-', 3000000, size - 1 ], // From a point to the end, as video players ask.
+		[ 'bytes=-15', size - 15, size - 1 ], // The final bytes.
+		[ 'bytes=-600000', size - 600000, size - 1 ], // Final bytes spanning several pieces.
+		[ 'bytes=100-99999999', 100, size - 1 ], // An end past the file.
+	] ) {
+		const part = await get( 'file', { m, id: 'pub-big', disp: 'attachment' }, { Range: asked } );
+		assert.equal( part.status, 206, asked );
+		assert.equal( part.headers.get( 'content-range' ), `bytes ${ from }-${ to }/${ size }`, asked );
+		assert.ok( Buffer.from( await part.arrayBuffer() ).equals( whole.subarray( from, to + 1 ) ), asked );
+	}
+	assert.equal( ( await get( 'file', { m, id: 'pub-big', disp: 'attachment' }, { Range: `bytes=${ size }-` } ) ).status, 416 );
+
+	const empty = await get( 'file', { m, id: 'pub-empty', disp: 'attachment' } );
+	assert.equal( empty.status, 200, 'an empty file downloads as an empty file' );
+	assert.equal( ( await empty.arrayBuffer() ).byteLength, 0 );
 } );
 await it( 'exports Google Docs: Word for download, PDF for preview', async () => {
 	const dl = await get( 'file', { m, id: 'pub-doc', disp: 'attachment' } );

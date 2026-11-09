@@ -3,7 +3,7 @@
  * Plugin Name:       FileFolio – File Browser, Photo Gallery & Embeds for Google Drive
  * Plugin URI:        https://github.com/mk-manishkandel/EmbedDriveToWordpress
  * Description:       Show Google Drive folders, photo galleries, file previews, search and downloads on your site with a block or shortcode. Read-only, no upsells.
- * Version:           0.5.2
+ * Version:           0.5.3
  * Requires at least: 6.0
  * Requires PHP:      8.0
  * Author:            Manish Kandel
@@ -34,7 +34,7 @@ if ( defined( 'EMBED_DRIVE_VERSION' ) ) {
 	return;
 }
 
-define( 'EMBED_DRIVE_VERSION', '0.5.2' );
+define( 'EMBED_DRIVE_VERSION', '0.5.3' );
 define( 'EMBED_DRIVE_FILE', __FILE__ );
 define( 'EMBED_DRIVE_DIR', plugin_dir_path( __FILE__ ) );
 define( 'EMBED_DRIVE_URL', plugin_dir_url( __FILE__ ) );

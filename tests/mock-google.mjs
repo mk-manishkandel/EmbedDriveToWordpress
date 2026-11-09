@@ -32,6 +32,7 @@ const files = {
 	'pub-csv': [ 'table.csv', 'text/csv', 'public', body( 'a,b' ) ],
 	'pub-trashed': [ 'deleted.txt', 'text/plain', 'public', body( 'owner deleted this' ) ],
 	'pub-big': [ 'big.bin', 'application/octet-stream', 'public', blob ],
+	'pub-empty': [ 'empty.txt', 'text/plain', 'public', Buffer.alloc( 0 ) ],
 	'pub-html': [ 'evil.html', 'text/html', 'public', body( '<script>alert(1)</script>' ) ],
 	'pub-svg': [ 'evil.svg', 'image/svg+xml', 'public', body( '<svg onload="alert(1)"/>' ) ],
 	'pub-doc': [ 'Report', 'application/vnd.google-apps.document', 'public' ],
@@ -273,8 +274,9 @@ const server = http.createServer( async ( req, res ) => {
 		const type = files[ id ][ 1 ];
 		const range = req.headers.range?.match( /^bytes=(\d*)-(\d*)$/ );
 		if ( range ) {
-			const start = +range[ 1 ] || 0;
-			const end = range[ 2 ] ? +range[ 2 ] : content.length - 1;
+			// Like Google: "bytes=-N" is the final N bytes, and an end past the file is cut to the file.
+			const start = range[ 1 ] === '' ? Math.max( 0, content.length - +range[ 2 ] ) : +range[ 1 ];
+			const end = range[ 1 ] !== '' && range[ 2 ] ? Math.min( +range[ 2 ], content.length - 1 ) : content.length - 1;
 			if ( start >= content.length ) {
 				res.writeHead( 416, { 'Content-Range': `bytes */${ content.length }` } );
 				return res.end();
