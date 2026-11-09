@@ -25,11 +25,14 @@ jobs:
           grep -q "define( 'EMBED_DRIVE_VERSION', '${version}' );" embed-drive.php || { echo "EMBED_DRIVE_VERSION differs from tag"; exit 1; }
           grep -q "^Stable tag: ${version}$" readme.txt || { echo "readme.txt Stable tag differs from tag"; exit 1; }
 
-      - name: Build the plugin ZIP
-        run: bin/build-zip.sh
+      - name: Build the plugin ZIPs
+        run: |
+          bin/build-zip.sh --wordpress-org
+          mv build/embed-drive.zip embed-drive-wordpress-org.zip
+          bin/build-zip.sh
 
       # Stays a draft, hidden from sites, until bin/sign-release.mjs signs it on the maintainer's computer.
       - name: Create the draft release
         env:
           GH_TOKEN: ${{ github.token }}
-        run: gh release create "$GITHUB_REF_NAME" build/embed-drive.zip --title "Embed Drive ${GITHUB_REF_NAME#v}" --generate-notes --draft
+        run: gh release create "$GITHUB_REF_NAME" build/embed-drive.zip embed-drive-wordpress-org.zip --title "Embed Drive ${GITHUB_REF_NAME#v}" --generate-notes --draft

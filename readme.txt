@@ -3,7 +3,7 @@ Tags: google drive, file browser, documents, download, embed
 Requires at least: 6.0
 Tested up to: 7.1
 Requires PHP: 8.0
-Stable tag: 0.3.9
+Stable tag: 0.4.0
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -64,6 +64,10 @@ A Drive shortcut can point to a file outside the chosen folder, so shortcuts are
 File lists are cached for 5 minutes. Use Clear file cache in the settings to refresh sooner.
 
 == Changelog ==
+
+= 0.4.0 =
+* Prepared for the WordPress.org plugin directory. Each release now also includes `embed-drive-wordpress-org.zip`, the copy for WordPress.org, which leaves out the GitHub updater.
+* Translations now load the standard WordPress way.
 
 = 0.3.9 =
 * New: a daily email summary if requests to Google keep failing, for example during an outage or when a Google limit is reached. It is on by default and can be turned off under Notifications.
