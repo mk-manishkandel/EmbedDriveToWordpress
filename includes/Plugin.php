@@ -22,6 +22,7 @@ final class Plugin {
 			Admin::boot();
 		}
 		OAuth::boot();
+		Privacy::boot();
 		// The WordPress.org copy leaves the updater out, since WordPress.org delivers its updates.
 		if ( class_exists( Updater::class ) ) {
 			Updater::boot();

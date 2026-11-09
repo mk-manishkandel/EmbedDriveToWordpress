@@ -24,6 +24,7 @@ final class Admin {
 		'tick'     => 'M5 12.5l4.5 4.5L19 7.5',
 		'alert'    => 'M12 4l9 16H3zM12 10v4.5M12 17.2v.01',
 		'chevron'  => 'M10 7l5 5-5 5',
+		'image'    => 'M4 5h16v14H4zM4 16l4.5-4.5 3.5 3.5 2.5-2.5L20 17M15.5 9v.01',
 	];
 
 	const ICON_PATH = 'M2 5.5A1.5 1.5 0 0 1 3.5 4h4.2l1.8 2h7A1.5 1.5 0 0 1 18 7.5v8a1.5 1.5 0 0 1-1.5 1.5h-13A1.5 1.5 0 0 1 2 15.5zM7.7 8.6 4.8 11.5l2.9 2.9 1-1-1.9-1.9 1.9-1.9zM12.3 8.6l-1 1 1.9 1.9-1.9 1.9 1 1 2.9-2.9z';
@@ -204,9 +205,9 @@ final class Admin {
 				<section class="ed-card">
 					<h2 class="ed-card__title"><?php esc_html_e( 'Appearance', 'embed-drive' ); ?></h2>
 					<div class="ed-field">
-						<label for="ed-min-height"><?php esc_html_e( 'File browser minimum height (px)', 'embed-drive' ); ?></label>
+						<label for="ed-min-height"><?php esc_html_e( 'Minimum height for file browsers and galleries (px)', 'embed-drive' ); ?></label>
 						<input id="ed-min-height" name="min_height" type="number" min="0" max="3000" step="10" value="<?php echo esc_attr( $settings['min_height'] ); ?>">
-						<p class="ed-hint"><?php esc_html_e( 'Keeps the file browser at least this tall, even with few files. Use 0 for no minimum. Set a different height for one file browser with min_height="500" in its shortcode, or in its block options.', 'embed-drive' ); ?></p>
+						<p class="ed-hint"><?php esc_html_e( 'Keeps file browsers and galleries at least this tall, even with few files. Use 0 for no minimum. Set a different height for one file browser with min_height="500" in its shortcode, or in its block options.', 'embed-drive' ); ?></p>
 					</div>
 				</section>
 
@@ -229,6 +230,7 @@ final class Admin {
 					</div>
 					<label class="ed-toggle"><input class="ed-switch" name="error_email" type="checkbox" value="1" <?php checked( $settings['error_email'] ); ?>> <?php esc_html_e( 'Email me if Google keeps failing', 'embed-drive' ); ?></label>
 					<p class="ed-hint"><?php esc_html_e( 'A summary at most once a day, only when requests to Google failed repeatedly. It contains no file names or visitor details.', 'embed-drive' ); ?></p>
+					<?php self::connection_status(); ?>
 				</section>
 			</div>
 
@@ -262,9 +264,40 @@ final class Admin {
 		self::close_page();
 	}
 
+	/**
+	 * The most recent failed request to Google, so problems show without waiting for the email.
+	 */
+	private static function connection_status(): void {
+		$latest = Health::latest();
+		$recent = $latest && time() - $latest['time'] < 30 * DAY_IN_SECONDS;
+		?>
+		<p class="ed-health <?php echo $recent ? 'is-problem' : 'is-ok'; ?>">
+			<?php self::glyph( $recent ? 'alert' : 'tick' ); ?>
+			<span>
+				<?php
+				if ( $recent ) {
+					printf(
+						/* translators: 1: what went wrong, 2: how long ago, such as "3 hours" */
+						esc_html__( 'Last problem with Google: %1$s, %2$s ago.', 'embed-drive' ),
+						esc_html( $latest['label'] ),
+						esc_html( human_time_diff( $latest['time'] ) )
+					);
+					if ( '' !== $latest['detail'] ) {
+						echo ' <code>' . esc_html( $latest['detail'] ) . '</code>';
+					}
+				} else {
+					esc_html_e( 'No problems reaching Google in the last 30 days.', 'embed-drive' );
+				}
+				?>
+			</span>
+		</p>
+		<?php
+	}
+
 	public static function builder_page(): void {
 		$modules = [
-			'files'  => [ 'folder', __( 'File browser', 'embed-drive' ), __( 'Browse a folder', 'embed-drive' ) ],
+			'files'   => [ 'folder', __( 'File browser', 'embed-drive' ), __( 'Browse a folder', 'embed-drive' ) ],
+			'gallery' => [ 'image', __( 'Photo gallery', 'embed-drive' ), __( 'The photos in a folder', 'embed-drive' ) ],
 			'search' => [ 'search', __( 'Search box', 'embed-drive' ), __( 'Search a folder', 'embed-drive' ) ],
 			'embed'  => [ 'file', __( 'Embed one file', 'embed-drive' ), __( 'Show it on the page', 'embed-drive' ) ],
 			'button' => [ 'download', __( 'Download button', 'embed-drive' ), __( 'A button for one file', 'embed-drive' ) ],
@@ -320,7 +353,7 @@ final class Admin {
 									<option value="list"><?php esc_html_e( 'List', 'embed-drive' ); ?></option>
 								</select>
 							</div>
-							<div class="ed-field" data-for="files">
+							<div class="ed-field" data-for="files gallery">
 								<label for="ed-sort"><?php esc_html_e( 'Sort by', 'embed-drive' ); ?></label>
 								<div class="ed-inline">
 									<select id="ed-sort" name="sort">
@@ -334,7 +367,7 @@ final class Admin {
 									</select>
 								</div>
 							</div>
-							<div class="ed-field" data-for="files">
+							<div class="ed-field" data-for="files gallery">
 								<label for="ed-min"><?php esc_html_e( 'Minimum height (px)', 'embed-drive' ); ?></label>
 								<input id="ed-min" name="min_height" type="number" min="0" max="3000" step="10" placeholder="<?php esc_attr_e( 'From Settings', 'embed-drive' ); ?>">
 							</div>
@@ -347,8 +380,8 @@ final class Admin {
 								<input id="ed-height" name="height" type="number" min="100" max="3000" value="600">
 							</div>
 						</div>
-						<div class="ed-toggles" data-for="files search embed">
-							<label class="ed-toggle" data-for="files search embed"><input class="ed-switch" type="checkbox" name="download" checked> <?php esc_html_e( 'Allow downloads', 'embed-drive' ); ?></label>
+						<div class="ed-toggles" data-for="files gallery search embed">
+							<label class="ed-toggle" data-for="files gallery search embed"><input class="ed-switch" type="checkbox" name="download" checked> <?php esc_html_e( 'Allow downloads', 'embed-drive' ); ?></label>
 							<label class="ed-toggle" data-for="files"><input class="ed-switch" type="checkbox" name="zip" checked> <?php esc_html_e( 'Allow ZIP downloads', 'embed-drive' ); ?></label>
 							<label class="ed-toggle" data-for="files"><input class="ed-switch" type="checkbox" name="search" checked> <?php esc_html_e( 'Show search box', 'embed-drive' ); ?></label>
 							<label class="ed-toggle" data-for="files search"><input class="ed-switch" type="checkbox" name="preview" checked> <?php esc_html_e( 'Allow previews', 'embed-drive' ); ?></label>

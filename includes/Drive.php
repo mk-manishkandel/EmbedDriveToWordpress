@@ -47,7 +47,7 @@ final class Drive {
 	/**
 	 * @return array|WP_Error `files` and `nextPageToken`.
 	 */
-	public function list_children( string $folder, string $sort = 'name', string $direction = 'asc', string $page_token = '', int $page_size = 100, bool $folders_only = false ) {
+	public function list_children( string $folder, string $sort = 'name', string $direction = 'asc', string $page_token = '', int $page_size = 100, bool $folders_only = false, bool $photos_only = false ) {
 		$field = self::SORTS[ $sort ] ?? 'name';
 		$order = 'folder,' . $field . ( 'desc' === $direction ? ' desc' : '' );
 		if ( 'name' === $field ) {
@@ -57,6 +57,9 @@ final class Drive {
 		$query = sprintf( "'%s' in parents and %s", self::escape( $folder ), self::base_filter() );
 		if ( $folders_only ) {
 			$query .= " and mimeType = '" . self::FOLDER_MIME . "'";
+		} elseif ( $photos_only ) {
+			$types  = array_map( static fn( $type ) => "mimeType = '" . self::escape( $type ) . "'", array_merge( [ self::FOLDER_MIME ], FileTypes::photo_types() ) );
+			$query .= ' and (' . implode( ' or ', $types ) . ')';
 		}
 
 		return $this->remember(

@@ -67,7 +67,8 @@ final class Rest {
 		if ( is_wp_error( $module ) ) {
 			return $module;
 		}
-		if ( 'files' !== $module['m'] ) {
+		$gallery = 'gallery' === $module['m'];
+		if ( 'files' !== $module['m'] && ! $gallery ) {
 			return self::denied();
 		}
 		if ( ! self::within_rate( 'list', 240 ) ) {
@@ -88,11 +89,15 @@ final class Rest {
 			end( $path )['id'],
 			self::text_param( $request, 'sort' ),
 			self::text_param( $request, 'order' ),
-			substr( self::text_param( $request, 'cursor' ), 0, 4096 )
+			substr( self::text_param( $request, 'cursor' ), 0, 4096 ),
+			100,
+			false,
+			$gallery
 		);
 		if ( is_wp_error( $page ) ) {
 			return self::visitor_error( $page );
 		}
+		$files = array_filter( (array) ( $page['files'] ?? [] ), static fn( $file ) => self::in_module( $module, $file ) );
 
 		return self::uncached( [
 			'breadcrumbs' => array_map(
@@ -102,7 +107,7 @@ final class Rest {
 				],
 				$path
 			),
-			'items'       => array_map( static fn( $file ) => self::item( $file, $module ), (array) ( $page['files'] ?? [] ) ),
+			'items'       => array_values( array_map( static fn( $file ) => self::item( $file, $module ), $files ) ),
 			'next'        => (string) ( $page['nextPageToken'] ?? '' ),
 		] );
 	}
@@ -407,11 +412,18 @@ final class Rest {
 		if ( is_wp_error( $path ) ) {
 			return self::visitor_error( $path );
 		}
-		if ( ! $path || Drive::is_folder( end( $path ) ) ) {
+		if ( ! $path || Drive::is_folder( end( $path ) ) || ! self::in_module( $module, end( $path ) ) ) {
 			return self::denied();
 		}
 
 		return end( $path );
+	}
+
+	/**
+	 * A gallery publishes only the photos in its folder, so nothing else in it can be listed or fetched.
+	 */
+	private static function in_module( array $module, array $file ): bool {
+		return 'gallery' !== $module['m'] || Drive::is_folder( $file ) || FileTypes::is_photo( (string) $file['mimeType'] );
 	}
 
 	private static function id_param( WP_REST_Request $request, string $name ): string {

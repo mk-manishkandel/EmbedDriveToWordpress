@@ -54,6 +54,15 @@ const files = {
 	many: [ 'Many Files', FOLDER, 'root-id' ],
 	...Object.fromEntries( Array.from( { length: 130 }, ( _, i ) => [ `many-${ i }`, [ `item ${ String( i ).padStart( 3, '0' ) }.txt`, 'text/plain', 'many', body( 'x' ) ] ] ) ),
 	shortcut: [ 'link-to-secret', 'application/vnd.google-apps.shortcut', 'public' ],
+	photos: [ 'Photos', FOLDER, 'root-id' ],
+	'photo-a': [ 'beach.png', 'image/png', 'photos', png ],
+	'photo-b': [ 'sunset.jpg', 'image/jpeg', 'photos', body( 'jpeg-bytes' ) ],
+	'photo-pdf': [ 'invoice.pdf', 'application/pdf', 'photos', body( '%PDF-not-a-photo' ) ],
+	'photo-svg': [ 'drawing.svg', 'image/svg+xml', 'photos', body( '<svg onload="alert(1)"/>' ) ],
+	'photo-doc': [ 'Notes', 'application/vnd.google-apps.document', 'photos' ],
+	album: [ 'Summer Album', FOLDER, 'photos' ],
+	'album-photo': [ 'pool.png', 'image/png', 'album', png ],
+	'album-text': [ 'captions.txt', 'text/plain', 'album', body( 'private captions' ) ],
 };
 
 let validToken = 'access-1';
@@ -84,7 +93,10 @@ function meta( id, port ) {
 function search( q, port ) {
 	const parents = [ ...q.matchAll( /'([^']+)' in parents/g ) ].map( ( m ) => m[ 1 ] );
 	const term = q.match( /name contains '((?:[^'\\]|\\.)*)'/ )?.[ 1 ]?.replace( /\\(.)/g, '$1' ).toLowerCase();
-	const foldersOnly = q.includes( `mimeType = '${ FOLDER }'` );
+	// A list of allowed types, such as a gallery's: (mimeType = 'a' or mimeType = 'b').
+	const anyOf = q.match( /\((mimeType = '[^']+'(?: or mimeType = '[^']+')+)\)/ )?.[ 1 ];
+	const allowed = anyOf ? [ ...anyOf.matchAll( /mimeType = '([^']+)'/g ) ].map( ( m ) => m[ 1 ] ) : null;
+	const foldersOnly = ! allowed && q.includes( `mimeType = '${ FOLDER }'` );
 	const hideShortcuts = q.includes( "mimeType != 'application/vnd.google-apps.shortcut'" );
 
 	return Object.keys( files )
@@ -94,6 +106,9 @@ function search( q, port ) {
 				return false;
 			}
 			if ( foldersOnly && mime !== FOLDER ) {
+				return false;
+			}
+			if ( allowed && ! allowed.includes( mime ) ) {
 				return false;
 			}
 			if ( hideShortcuts && mime.endsWith( '.shortcut' ) ) {
@@ -119,7 +134,7 @@ const server = http.createServer( async ( req, res ) => {
 		chunks.push( chunk );
 	}
 	const form = new URLSearchParams( Buffer.concat( chunks ).toString() );
-	log.push( { method: req.method, path: url.pathname, auth: req.headers.authorization || '', range: req.headers.range || '' } );
+	log.push( { method: req.method, path: url.pathname, auth: req.headers.authorization || '', range: req.headers.range || '', q: url.searchParams.get( 'q' ) || '' } );
 
 	const send = ( status, data, headers = {} ) => {
 		const isBuffer = Buffer.isBuffer( data );

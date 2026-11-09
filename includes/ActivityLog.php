@@ -79,6 +79,28 @@ final class ActivityLog {
 	}
 
 	/**
+	 * One person's entries, oldest first, for a personal data export.
+	 */
+	public static function for_user( int $user_id, int $page, int $per_page ): array {
+		global $wpdb;
+		$table = self::table();
+
+		// phpcs:ignore WordPress.DB, PluginCheck.Security.DirectDB.UnescapedDBParameter -- The plugin's own table.
+		return (array) $wpdb->get_results( $wpdb->prepare( "SELECT id, created_at, event, detail FROM $table WHERE user_id = %d ORDER BY id LIMIT %d OFFSET %d", $user_id, $per_page, max( 0, $page - 1 ) * $per_page ), ARRAY_A );
+	}
+
+	/**
+	 * Delete one person's entries, for a personal data erasure request.
+	 *
+	 * @return int How many were deleted.
+	 */
+	public static function erase_user( int $user_id ): int {
+		global $wpdb;
+
+		return (int) $wpdb->delete( self::table(), [ 'user_id' => $user_id ], [ '%d' ] ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery
+	}
+
+	/**
 	 * @return array{rows: array, total: int}
 	 */
 	public static function page( string $event, int $page, int $per_page ): array {

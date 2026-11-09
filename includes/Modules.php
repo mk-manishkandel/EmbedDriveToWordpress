@@ -11,7 +11,7 @@ defined( 'ABSPATH' ) || exit;
 
 final class Modules {
 
-	const MODES = [ 'files', 'search', 'embed', 'button', 'link' ];
+	const MODES = [ 'files', 'gallery', 'search', 'embed', 'button', 'link' ];
 
 	/** Raising this cancels every visitor link made before it. */
 	const TOKEN_VERSION = 2;
@@ -63,6 +63,8 @@ final class Modules {
 					'preparing' => __( 'Preparing ZIP…', 'embed-drive' ),
 					'select'    => __( 'Select', 'embed-drive' ),
 					'crumbs'    => __( 'Folder path', 'embed-drive' ),
+					'noPhotos'  => __( 'There are no photos here.', 'embed-drive' ),
+					'photo'     => __( 'Open photo', 'embed-drive' ),
 				],
 			]
 		);
@@ -116,7 +118,10 @@ final class Modules {
 	 * @param array $attributes Block attributes.
 	 */
 	public static function render_block( array $attributes ): string {
-		return self::render( $attributes );
+		$html = self::render( $attributes );
+
+		// The wrapper carries the block's alignment and any extra classes chosen in the editor.
+		return '' === $html ? '' : '<div ' . get_block_wrapper_attributes() . '>' . $html . '</div>';
 	}
 
 	/**
@@ -150,7 +155,7 @@ final class Modules {
 		);
 
 		$mode = in_array( $a['mode'], self::MODES, true ) ? $a['mode'] : 'files';
-		$kind = in_array( $mode, [ 'files', 'search' ], true ) ? 'folder' : 'file';
+		$kind = in_array( $mode, [ 'files', 'gallery', 'search' ], true ) ? 'folder' : 'file';
 
 		$target = Rest::clean_id( 'folder' === $kind ? (string) $a['folder'] : (string) $a['file'] );
 		if ( '' === $target ) {
@@ -178,7 +183,7 @@ final class Modules {
 				'd' => in_array( $mode, [ 'button', 'link' ], true ) || $download,
 				'z' => 'files' === $mode && $download && self::truthy( $a['zip'] ),
 				's' => 'search' === $mode || ( 'files' === $mode && self::truthy( $a['search'] ) ),
-				'p' => 'embed' === $mode || self::truthy( $a['preview'] ),
+				'p' => in_array( $mode, [ 'embed', 'gallery' ], true ) || self::truthy( $a['preview'] ),
 			]
 		);
 
@@ -196,7 +201,7 @@ final class Modules {
 
 		// A module's own value wins over the one in Settings. Either way, 0 means no minimum.
 		$min_height = (int) $a['min_height'] ?: (int) Settings::get( 'min_height' );
-		$min_height = 'files' === $mode ? max( 0, min( 3000, $min_height ) ) : 0;
+		$min_height = 'search' !== $mode ? max( 0, min( 3000, $min_height ) ) : 0;
 
 		$config = [
 			'token'    => $token,
@@ -204,7 +209,7 @@ final class Modules {
 			'view'     => 'list' === $a['view'] ? 'list' : 'grid',
 			'sort'     => in_array( $a['sort'], array_keys( Drive::SORTS ), true ) ? $a['sort'] : 'name',
 			'order'    => 'desc' === $a['order'] ? 'desc' : 'asc',
-			'search'   => 'search' === $mode || self::truthy( $a['search'] ),
+			'search'   => 'search' === $mode || ( 'files' === $mode && self::truthy( $a['search'] ) ),
 			'zip'      => 'files' === $mode && $download && self::truthy( $a['zip'] ),
 		];
 
@@ -212,7 +217,7 @@ final class Modules {
 			'<div class="embed-drive"%s data-embed-drive="%s"><noscript>%s</noscript></div>',
 			$min_height ? sprintf( ' style="--ed-min-height:%dpx"', $min_height ) : '',
 			esc_attr( (string) wp_json_encode( $config ) ),
-			esc_html__( 'Please enable JavaScript to browse these files.', 'embed-drive' )
+			'gallery' === $mode ? esc_html__( 'Please enable JavaScript to see these photos.', 'embed-drive' ) : esc_html__( 'Please enable JavaScript to browse these files.', 'embed-drive' )
 		);
 	}
 

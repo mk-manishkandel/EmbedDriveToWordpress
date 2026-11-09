@@ -22,29 +22,68 @@ final class Health {
 
 	const CATEGORIES = [ 'network', 'signin', 'auth', 'refused', 'server' ];
 
+	/** The most recent problem, shown on the settings screen. Kept apart from the counts the email uses. */
+	const LATEST = '_latest';
+
 	/**
-	 * Note a failure. Counted at most once a minute per category, so an outage on a busy site
+	 * Note a failure. Written at most once a minute per category, so an outage on a busy site
 	 * means a handful of database writes rather than one for every visitor.
 	 */
 	public static function record( string $category, string $detail = '' ): void {
-		if ( ! in_array( $category, self::CATEGORIES, true ) || ! Settings::get( 'error_email' ) ) {
+		if ( ! in_array( $category, self::CATEGORIES, true ) ) {
 			return;
 		}
 
 		$health = (array) get_option( self::OPTION, [] );
 		$now    = time();
+		$latest = (array) ( $health[ self::LATEST ] ?? [] );
 		$entry  = (array) ( $health[ $category ] ?? [] );
-		if ( $now - (int) ( $entry['last'] ?? 0 ) < MINUTE_IN_SECONDS ) {
+		if ( $now - max( (int) ( $entry['last'] ?? 0 ), $category === ( $latest['category'] ?? '' ) ? (int) ( $latest['time'] ?? 0 ) : 0 ) < MINUTE_IN_SECONDS ) {
 			return;
 		}
 
-		$health[ $category ] = [
-			'minutes' => (int) ( $entry['minutes'] ?? 0 ) + 1,
-			'first'   => (int) ( $entry['first'] ?? $now ),
-			'last'    => $now,
-			'detail'  => $detail,
+		$health[ self::LATEST ] = [
+			'category' => $category,
+			'time'     => $now,
+			'detail'   => $detail,
 		];
+		if ( Settings::get( 'error_email' ) ) {
+			$health[ $category ] = [
+				'minutes' => (int) ( $entry['minutes'] ?? 0 ) + 1,
+				'first'   => (int) ( $entry['first'] ?? $now ),
+				'last'    => $now,
+				'detail'  => $detail,
+			];
+		}
 		update_option( self::OPTION, $health, false );
+	}
+
+	/**
+	 * @return array{label: string, time: int, detail: string}|null The most recent problem, if any.
+	 */
+	public static function latest(): ?array {
+		$latest = (array) ( ( (array) get_option( self::OPTION, [] ) )[ self::LATEST ] ?? [] );
+		if ( ! in_array( $latest['category'] ?? '', self::CATEGORIES, true ) ) {
+			return null;
+		}
+
+		return [
+			'label'  => self::label( (string) $latest['category'] ),
+			'time'   => (int) $latest['time'],
+			'detail' => (string) $latest['detail'],
+		];
+	}
+
+	/**
+	 * Drop the email's counts but keep the most recent problem for the settings screen.
+	 */
+	private static function clear_counts(): void {
+		$latest = ( (array) get_option( self::OPTION, [] ) )[ self::LATEST ] ?? null;
+		if ( $latest ) {
+			update_option( self::OPTION, [ self::LATEST => $latest ], false );
+		} else {
+			delete_option( self::OPTION );
+		}
 	}
 
 	/**
@@ -77,14 +116,14 @@ final class Health {
 			return;
 		}
 		if ( ! Settings::get( 'error_email' ) ) {
-			delete_option( self::OPTION );
+			self::clear_counts();
 
 			return;
 		}
 
 		if ( array_sum( array_column( $health, 'minutes' ) ) < self::MIN_MINUTES ) {
 			if ( time() - min( array_column( $health, 'first' ) ) > self::WINDOW ) {
-				delete_option( self::OPTION );
+				self::clear_counts();
 			}
 
 			return;
@@ -117,7 +156,7 @@ final class Health {
 
 		// Try again tomorrow if the site couldn't send it.
 		if ( $sent ) {
-			delete_option( self::OPTION );
+			self::clear_counts();
 		}
 	}
 

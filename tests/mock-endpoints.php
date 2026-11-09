@@ -272,13 +272,40 @@ add_action(
 							$age = (int) $r->get_param( 'age' );
 							if ( $age ) {
 								foreach ( $health as $key => $entry ) {
-									$health[ $key ]['last']  -= $age;
-									$health[ $key ]['first'] -= $age;
+									if ( '_latest' === $key ) {
+										$health[ $key ]['time'] -= $age;
+									} else {
+										$health[ $key ]['last']  -= $age;
+										$health[ $key ]['first'] -= $age;
+									}
 								}
 								update_option( 'embed_drive_health', $health, false );
 							}
+							unset( $health['_latest'] );
 
 							return (object) $health;
+						case 'health_latest':
+							return [ 'latest' => EmbedDrive\Health::latest() ];
+						case 'privacy':
+							$make  = static fn( $name ) => wp_insert_user( [ 'user_login' => $name . wp_rand(), 'user_email' => $name . wp_rand() . '@example.com', 'user_pass' => wp_generate_password() ] );
+							$alice = $make( 'alice' );
+							$bob   = $make( 'bob' );
+							EmbedDrive\Settings::update( [ 'log_enabled' => true ] );
+							foreach ( [ [ $alice, 'download', 'alice-file.pdf' ], [ $alice, 'search', 'alice secret term' ], [ $bob, 'download', 'bob-file.pdf' ] ] as [ $user, $event, $detail ] ) {
+								wp_set_current_user( $user );
+								EmbedDrive\ActivityLog::record( $event, 'acct', 'f1', $detail );
+							}
+							wp_set_current_user( 0 );
+							$email     = get_userdata( $alice )->user_email;
+							$exporters = apply_filters( 'wp_privacy_personal_data_exporters', [] );
+							$erasers   = apply_filters( 'wp_privacy_personal_data_erasers', [] );
+							$export    = call_user_func( $exporters['embed-drive']['callback'], $email, 1 );
+							$nobody    = call_user_func( $exporters['embed-drive']['callback'], 'nobody@example.com', 1 );
+							$erased    = call_user_func( $erasers['embed-drive']['callback'], $email, 1 );
+							$after     = call_user_func( $exporters['embed-drive']['callback'], $email, 1 );
+							$bob_left  = call_user_func( $exporters['embed-drive']['callback'], get_userdata( $bob )->user_email, 1 );
+
+							return compact( 'export', 'nobody', 'erased', 'after', 'bob_left' );
 						case 'health_summary':
 							global $embed_drive_mails;
 							$embed_drive_mails = [];
@@ -295,7 +322,10 @@ add_action(
 							);
 							do_action( EmbedDrive\Plugin::CRON_DAILY );
 
-							return [ 'mails' => $embed_drive_mails, 'health' => (object) get_option( 'embed_drive_health', [] ) ];
+							$health = (array) get_option( 'embed_drive_health', [] );
+							unset( $health['_latest'] );
+
+							return [ 'mails' => $embed_drive_mails, 'health' => (object) $health ];
 						case 'stored_token':
 							return [ 'raw' => get_option( 'embed_drive_token_' . ( EmbedDrive\Accounts::default_id() ?: 'g12345' ) ) ];
 						case 'log':

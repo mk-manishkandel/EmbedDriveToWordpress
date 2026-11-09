@@ -5,7 +5,7 @@
 	"title": "Embed Drive",
 	"category": "embed",
 	"icon": "cloud",
-	"description": "Show a Google Drive folder or file: file browser, search, embed, or a download button or link.",
+	"description": "Show a Google Drive folder or file: file browser, photo gallery, search, embed, or a download button or link.",
 	"keywords": [ "google", "drive", "files", "download" ],
 	"textdomain": "embed-drive",
 	"supports": { "html": false, "align": [ "wide", "full" ] },

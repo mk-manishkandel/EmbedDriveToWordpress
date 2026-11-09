@@ -1,5 +1,5 @@
 /**
- * Front-end file browser and search. File names come from Drive and are untrusted,
+ * Front-end file browser, photo gallery and search. File names come from Drive and are untrusted,
  * so everything here builds DOM nodes and never uses innerHTML.
  */
 ( function () {
@@ -186,8 +186,9 @@
 			};
 			this.request = 0;
 			this.openPanel = null;
+			this.gallery = config.mode === 'gallery';
 			this.build();
-			if ( config.mode === 'files' ) {
+			if ( config.mode === 'files' || this.gallery ) {
 				this.showSkeleton();
 				this.load();
 			}
@@ -195,7 +196,7 @@
 
 		build() {
 			const { config } = this;
-			const browsing = config.mode === 'files';
+			const browsing = config.mode === 'files' || this.gallery;
 			const header = node( 'div', { className: 'embed-drive__header' } );
 
 			if ( browsing ) {
@@ -238,7 +239,10 @@
 			}
 
 			if ( browsing ) {
-				header.append( this.panel( 'sort', t.sort, this.sortMenu() ), this.panel( 'more', t.actions, this.moreMenu() ) );
+				header.append( this.panel( 'sort', t.sort, this.sortMenu() ) );
+				if ( ! this.gallery ) {
+					header.append( this.panel( 'more', t.actions, this.moreMenu() ) );
+				}
 				this.refreshButton = iconButton( 'refresh', t.refresh, () => this.load() );
 				header.append( this.refreshButton );
 			}
@@ -253,7 +257,7 @@
 				hidden: true,
 				onclick: () => this.load( true ),
 			} );
-			this.body = node( 'div', { className: `embed-drive__body is-${ this.state.view }` }, this.folders, this.files, this.more );
+			this.body = node( 'div', { className: this.bodyClass() }, this.folders, this.files, this.more );
 			this.spinner = node( 'div', { className: 'embed-drive__spinner', 'aria-hidden': 'true' } );
 			this.toTop = node(
 				'button',
@@ -421,6 +425,11 @@
 			}
 		}
 
+		bodyClass() {
+			// A gallery is always a grid of photos, with any subfolders shown as albums above them.
+			return this.gallery ? 'embed-drive__body is-grid is-gallery' : `embed-drive__body is-${ this.state.view }`;
+		}
+
 		setView( view ) {
 			this.state.view = view;
 			this.syncMenus();
@@ -524,7 +533,7 @@
 				const added = this.add( data.items );
 				// A page with nothing new means something is replaying an old answer, so stop asking.
 				state.next = append && ! added ? '' : data.next;
-				this.setStatus( state.items.length ? '' : t.empty );
+				this.setStatus( state.items.length ? '' : this.gallery ? t.noPhotos : t.empty );
 			} catch ( error ) {
 				if ( request === this.request ) {
 					this.dropSkeleton();
@@ -574,7 +583,7 @@
 		}
 
 		clearSearch() {
-			if ( this.config.mode === 'files' ) {
+			if ( this.config.mode !== 'search' ) {
 				this.load();
 				return;
 			}
@@ -645,6 +654,9 @@
 		drawItem( item ) {
 			const { state, config } = this;
 			const isFolder = item.type === 'folder';
+			if ( this.gallery && ! isFolder ) {
+				return this.drawPhoto( item );
+			}
 			const canPreview = item.preview !== 'none';
 
 			const title = node( 'button', {
@@ -725,13 +737,45 @@
 			return row;
 		}
 
+		/**
+		 * A square photo tile. The whole tile opens the photo; its name shows on hover.
+		 */
+		drawPhoto( item ) {
+			const thumb = node( 'div', { className: 'embed-drive__thumb' }, node( 'span', { className: 'embed-drive__placeholder' }, typeIcon( item ) ) );
+			if ( item.thumb ) {
+				const image = node( 'img', { loading: 'lazy', alt: '', src: url( 'thumb', { m: this.config.token, id: item.id } ) } );
+				image.addEventListener( 'load', () => image.classList.add( 'is-loaded' ) );
+				image.addEventListener( 'error', () => image.remove() );
+				thumb.append( image );
+			}
+			return node(
+				'div',
+				{ className: 'embed-drive__item is-file is-photo' },
+				thumb,
+				node( 'button', {
+					type: 'button',
+					className: 'embed-drive__photo',
+					title: item.name,
+					'aria-label': `${ t.photo }: ${ item.name }`,
+					onclick: () => this.preview( item ),
+				} ),
+				node( 'span', { className: 'embed-drive__caption', textContent: item.name, 'aria-hidden': 'true' } )
+			);
+		}
+
 		fileUrl( item, disposition ) {
 			return url( 'file', { m: this.config.token, id: item.id, disp: disposition } );
 		}
 
 		preview( item ) {
 			const items = this.state.items.filter( ( entry ) => entry.preview !== 'none' );
-			new Lightbox( items, items.indexOf( item ), ( entry, disposition ) => this.fileUrl( entry, disposition ), ( entry ) => url( 'thumb', { m: this.config.token, id: entry.id, large: 1 } ) );
+			new Lightbox(
+				items,
+				items.indexOf( item ),
+				( entry, disposition ) => this.fileUrl( entry, disposition ),
+				( entry ) => url( 'thumb', { m: this.config.token, id: entry.id, large: 1 } ),
+				this.gallery
+			);
 		}
 
 		async downloadZip() {
@@ -758,11 +802,13 @@
 	 * Full-screen preview. Moves between the folder's files without closing.
 	 */
 	class Lightbox {
-		constructor( items, index, fileUrl, largeThumb ) {
+		constructor( items, index, fileUrl, largeThumb, photos = false ) {
 			this.items = items;
 			this.index = index;
 			this.fileUrl = fileUrl;
 			this.largeThumb = largeThumb;
+			// A gallery shows Google's large copy first, which loads far faster than a camera original.
+			this.photos = photos;
 
 			const several = items.length > 1;
 			this.counter = node( 'span', { className: 'embed-drive-preview__count' } );
@@ -870,7 +916,8 @@
 
 			switch ( item.preview ) {
 				case 'image':
-					this.place( node( 'img', { src, alt: item.name } ) );
+					this.place( this.photo( item, src ) );
+					this.preloadNext();
 					break;
 				case 'video':
 					this.place( node( 'video', { src, controls: true, autoplay: true } ) );
@@ -885,6 +932,26 @@
 				default:
 					this.showPicture( item );
 			}
+		}
+
+		/**
+		 * In a gallery, fetch the next photo while this one is being looked at.
+		 */
+		preloadNext() {
+			const next = this.items[ ( this.index + 1 ) % this.items.length ];
+			if ( this.photos && next.thumb && next.preview === 'image' ) {
+				new window.Image().src = this.largeThumb( next );
+			}
+		}
+
+		photo( item, original ) {
+			const image = node( 'img', { src: this.photos && item.thumb ? this.largeThumb( item ) : original, alt: item.name } );
+			image.addEventListener( 'error', () => {
+				if ( image.src !== original ) {
+					image.src = original;
+				}
+			} );
+			return image;
 		}
 
 		/**

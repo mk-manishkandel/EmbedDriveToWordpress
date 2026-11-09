@@ -1105,3 +1105,41 @@ dialog.embed-drive-picker .button.button-primary:disabled {
 		transition: none !important;
 	}
 }
+
+/* Connection status under Notifications. */
+
+.embed-drive-admin p.ed-health {
+	display: flex;
+	gap: 8px;
+	align-items: flex-start;
+	margin: 16px 0 0;
+	padding: 10px 12px;
+	font-size: 13px;
+	line-height: 1.5;
+	border-radius: 8px;
+}
+
+.embed-drive-admin p.ed-health.is-ok {
+	color: var(--ed-good);
+	background: var(--ed-good-bg);
+}
+
+.embed-drive-admin p.ed-health.is-problem {
+	color: var(--ed-bad);
+	background: var(--ed-bad-bg);
+}
+
+.ed-health .ed-glyph {
+	flex: 0 0 18px;
+	width: 18px;
+	height: 18px;
+	margin-top: 1px;
+}
+
+.ed-health code {
+	padding: 1px 5px;
+	font-size: 12px;
+	color: inherit;
+	background: rgba(255, 255, 255, 0.6);
+	border-radius: 4px;
+}

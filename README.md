@@ -8,15 +8,21 @@ Show Google Drive folders and files on your WordPress site. Open source, with no
 
 The plugin has been submitted to the WordPress.org plugin directory and is waiting for review. Once it's approved, you'll also be able to install it from **Plugins > Add New**.
 
+![The file browser](.wordpress-org/screenshot-1.png)
+
+![A photo gallery](.wordpress-org/screenshot-2.png)
+
 ## Features
 
 - File browser with list and grid views, breadcrumbs and sorting
+- Photo gallery, with subfolders as albums and a full-screen viewer
 - Previews for images, PDFs, Word and Excel files, audio, video, text and Google Docs
 - Search across a folder and its subfolders
 - Single-file embeds, download buttons and links
 - Single-file and streaming ZIP downloads
 - Multiple Google accounts
-- Activity log, and email alerts if an account stops working or requests to Google keep failing
+- Activity log, which works with WordPress's personal data export and erase tools
+- Email alerts if an account stops working or requests to Google keep failing, and a connection status on the settings screen
 - Gutenberg block and shortcode builder
 
 ## Quick start
@@ -46,6 +52,7 @@ Someone hosting sites for others can run the optional [sign-in relay](relay/READ
 
 ```
 [embed_drive mode="files" folder="FOLDER_ID"]
+[embed_drive mode="gallery" folder="FOLDER_ID"]
 [embed_drive mode="search" folder="FOLDER_ID"]
 [embed_drive mode="embed" file="FILE_ID"]
 [embed_drive mode="button" file="FILE_ID" label="Get the guide"]
@@ -54,18 +61,18 @@ Someone hosting sites for others can run the optional [sign-in relay](relay/READ
 
 | Attribute | Values | Default | Applies to |
 |---|---|---|---|
-| `mode` | `files`, `search`, `embed`, `button`, `link` | `files` | All |
-| `folder` | Drive folder ID, or `root` for My Drive | | `files`, `search` |
+| `mode` | `files`, `gallery`, `search`, `embed`, `button`, `link` | `files` | All |
+| `folder` | Drive folder ID, or `root` for My Drive | | `files`, `gallery`, `search` |
 | `file` | Drive file ID | | `embed`, `button`, `link` |
 | `account` | Account ID, for multi-account sites | First account | All |
 | `view` | `grid`, `list` | `grid` | `files` |
-| `sort` | `name`, `modified`, `size` | `name` | `files` |
-| `order` | `asc`, `desc` | `asc` | `files` |
-| `download` | `yes`, `no` | `yes` (`no` for `embed`) | `files`, `search`, `embed` |
+| `sort` | `name`, `modified`, `size` | `name` | `files`, `gallery` |
+| `order` | `asc`, `desc` | `asc` | `files`, `gallery` |
+| `download` | `yes`, `no` | `yes` (`no` for `embed`) | `files`, `gallery`, `search`, `embed` |
 | `zip` | `yes`, `no` | `yes` | `files` |
 | `search` | `yes`, `no` | `yes` | `files` |
 | `preview` | `yes`, `no` | `yes` | `files`, `search` |
-| `min_height` | pixels | the plugin setting | `files` |
+| `min_height` | pixels | the plugin setting | `files`, `gallery` |
 | `label` | Text | File name | `button`, `link` |
 | `height` | Pixels, for documents | `600` | `embed` |
 
@@ -75,6 +82,7 @@ Someone hosting sites for others can run the optional [sign-in relay](relay/READ
 
 - **Read-only.** The plugin requests `drive.readonly`, so it can't change or delete anything in your Drive. Files are proxied through your site, so they don't need public sharing.
 - **Modules are public.** Anyone who can see the page can see its module's files. There are no per-role or password rules, so don't point a module at a private folder.
+- **A gallery is confined to photos.** Its visitor link can list and fetch only JPEG, PNG, GIF, WebP and AVIF pictures in its folder and subfolders, never documents or other files beside them.
 - **Each module is confined to its folder.** The page holds a signed token naming the folder and options. Every request checks the signature and walks up Drive's parent chain to confirm the item is inside that folder.
 - **Editors and above only.** A module in a post by a lower role won't display, as it could otherwise publish any file in the Drive. Change this with the `embed_drive_embed_capability` and `embed_drive_author_may_embed` filters.
 - **Credentials are encrypted** in the database with keys derived from your WordPress salts. Rotating the salts means signing in again. Define `EMBED_DRIVE_KEY` in `wp-config.php` to avoid that.

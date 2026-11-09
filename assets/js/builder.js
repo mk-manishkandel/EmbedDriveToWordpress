@@ -20,7 +20,7 @@
 	// With one account there is nothing to choose.
 	document.getElementById( 'ed-account-field' ).hidden = accounts.length < 2;
 
-	const wantsFolder = () => [ 'files', 'search' ].includes( form.mode.value );
+	const wantsFolder = () => [ 'files', 'gallery', 'search' ].includes( form.mode.value );
 
 	function attr( name, value ) {
 		return value === '' ? '' : ` ${ name }="${ String( value ).replace( /["\[\]]/g, '' ) }"`;
@@ -50,11 +50,20 @@
 
 		if ( mode === 'files' ) {
 			code += form.view.value !== 'grid' ? attr( 'view', form.view.value ) : '';
+		}
+		if ( mode === 'files' || mode === 'gallery' ) {
 			code += form.sort.value !== 'name' ? attr( 'sort', form.sort.value ) : '';
 			code += form.order.value !== 'asc' ? attr( 'order', form.order.value ) : '';
+		}
+		if ( mode === 'files' ) {
 			code += form.zip.checked ? '' : attr( 'zip', 'no' );
 			code += form.search.checked ? '' : attr( 'search', 'no' );
+		}
+		if ( mode === 'files' || mode === 'gallery' ) {
 			code += attr( 'min_height', form.min_height.value );
+		}
+		if ( mode === 'gallery' ) {
+			code += form.download.checked ? '' : attr( 'download', 'no' );
 		}
 		if ( mode === 'files' || mode === 'search' ) {
 			code += form.download.checked ? '' : attr( 'download', 'no' );

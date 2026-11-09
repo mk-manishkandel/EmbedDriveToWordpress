@@ -14,7 +14,10 @@ if [ "${1:-}" = "--wordpress-org" ]; then
 	sed -i.bak '/^ \* Update URI:/d' build/embed-drive/embed-drive.php
 	sed -i.bak '/^\* \*\*GitHub\*\*/d' build/embed-drive/readme.txt
 	rm build/embed-drive/*.bak
-	! grep -q 'Update URI\|api.github.com' build/embed-drive/embed-drive.php build/embed-drive/readme.txt
+	if grep -q 'Update URI\|api.github.com' build/embed-drive/embed-drive.php build/embed-drive/readme.txt; then
+		echo "The WordPress.org copy still mentions the GitHub updater"
+		exit 1
+	fi
 fi
 (cd build && zip -qr embed-drive.zip embed-drive)
 rm -rf build/embed-drive

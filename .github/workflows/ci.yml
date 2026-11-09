@@ -37,3 +37,24 @@ jobs:
           node-version: 24
       - name: Run end-to-end tests
         run: tests/run.sh ${{ matrix.php }}
+
+  wordpress-org:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+      - name: Publish to a local copy of the WordPress.org repository
+        run: |
+          command -v svn > /dev/null || { sudo apt-get update -q && sudo apt-get install -y -q subversion; }
+          repo="file://$(mktemp -d)/repo"
+          svnadmin create "${repo#file://}"
+          svn mkdir -q -m "Set up" "$repo/trunk" "$repo/tags" "$repo/assets"
+          version="$(sed -n 's/^Stable tag: //p' readme.txt)"
+          bin/deploy-wordpress-org.sh "$version" "$repo"
+          svn cat "$repo/tags/$version/embed-drive.php" | grep -q "Version: *$version"
+          if svn ls "$repo/trunk/includes/Updater.php" 2> /dev/null; then echo "The GitHub updater was published"; exit 1; fi
+          if svn cat "$repo/trunk/embed-drive.php" | grep -q "Update URI"; then echo "Update URI was published"; exit 1; fi
+          svn propget svn:mime-type "$repo/assets/banner-1544x500.png" | grep -q image/png
+          svn ls "$repo/assets" | grep -q screenshot-5.png
+          # The same version can't be published twice.
+          if bin/deploy-wordpress-org.sh "$version" "$repo"; then echo "Published the same version twice"; exit 1; fi
+

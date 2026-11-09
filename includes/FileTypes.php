@@ -69,6 +69,19 @@ final class FileTypes {
 		'application/vnd.ms-xpsdocument',
 	];
 
+	/**
+	 * Pictures every browser can show. These are all a gallery shows.
+	 *
+	 * @return string[]
+	 */
+	public static function photo_types(): array {
+		return array_keys( array_filter( self::INLINE, static fn( $kind ) => 'image' === $kind ) );
+	}
+
+	public static function is_photo( string $mime ): bool {
+		return in_array( $mime, self::photo_types(), true );
+	}
+
 	public static function is_native( string $mime ): bool {
 		return isset( self::EXPORTS[ $mime ] );
 	}

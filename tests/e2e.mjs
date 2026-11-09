@@ -915,6 +915,7 @@ await it( 'old blips are forgotten, and turning the email off stops both countin
 	await test_( 'settings', { values: { error_email: false } } );
 	await failedSearch( 'e2' );
 	assert.deepEqual( await test_( 'health' ), {} );
+	assert.equal( ( await test_( 'health_latest' ) ).latest.label, 'Google had an internal error', 'the settings screen still learns of it' );
 	await googleFails();
 	await test_( 'settings', { values: { error_email: true } } );
 } );
@@ -933,6 +934,113 @@ await it( 'the email setting is on by default and can be switched off on the set
 	await saved.arrayBuffer();
 	assert.equal( ( await test_( 'read_settings' ) ).settings.error_email, false );
 	await test_( 'settings', { values: { error_email: true } } );
+} );
+
+await it( 'the settings screen shows the most recent problem with Google', async () => {
+	const { latest } = await test_( 'health_latest' );
+	assert.ok( latest && latest.detail === 'HTTP 503 backendError' );
+	const page = await ( await session( `${ SITE }/wp-admin/admin.php?page=embed-drive` ) ).text();
+	assert.match( page, /class="ed-health is-problem"[\s\S]*Last problem with Google: Google had an internal error, [^<]* ago\.\s*<code>HTTP 503 backendError<\/code>/ );
+	await test_( 'health', { reset: true } );
+	await test_( 'health', { age: 31 * 86400 } );
+} );
+
+await it( 'the block keeps its wide alignment on the page', async () => {
+	const { url } = await test_( 'create_page', { code: '<!-- wp:embed-drive/module {"mode":"gallery","folder":"photos","align":"wide","className":"my-photos"} /-->' } );
+	const html = await ( await fetch( url ) ).text();
+	const wrapper = html.match( /<div class="([^"]*wp-block-embed-drive-module[^"]*)"[^>]*>\s*<div class="embed-drive"[^>]*data-embed-drive=/ );
+	assert.ok( wrapper, html.slice( html.indexOf( 'embed-drive' ) - 300, html.indexOf( 'embed-drive' ) + 300 ) );
+	assert.deepEqual( wrapper[ 1 ].split( ' ' ).sort(), [ 'alignwide', 'my-photos', 'wp-block-embed-drive-module' ] );
+} );
+
+const gallery = async ( extra = '' ) => tokenFrom( await render( `[embed_drive mode="gallery" folder="photos"${ extra }]` ) );
+const listNames = async ( params ) => {
+	const r = await get( 'list', params );
+	return r.ok ? ( await r.json() ).items.map( ( i ) => i.name ).sort() : r.status;
+};
+
+await it( 'a gallery shows only the photos in its folder, with subfolders as albums', async () => {
+	const config = await gallery();
+	assert.equal( config.mode, 'gallery' );
+	assert.equal( config.search, false );
+	assert.equal( config.zip, false );
+	assert.deepEqual( await listNames( { m: config.token } ), [ 'Summer Album', 'beach.png', 'sunset.jpg' ] );
+	assert.deepEqual( await listNames( { m: config.token, folder: 'album' } ), [ 'pool.png' ] );
+	const asked = ( await ( await fetch( MOCK + '/__log' ) ).json() ).filter( ( l ) => l.q.includes( "'photos' in parents" ) );
+	assert.ok( asked.length && asked.every( ( l ) => l.q.includes( "mimeType = 'image/jpeg'" ) && ! l.q.includes( 'pdf' ) ), 'Google is only asked for photos and folders' );
+	const items = ( await ( await get( 'list', { m: config.token } ) ).json() ).items;
+	assert.ok( items.filter( ( i ) => i.type === 'file' ).every( ( i ) => i.preview === 'image' && i.download ) );
+} );
+
+await it( 'SECURITY: a gallery link reaches nothing but the photos in its folder', async () => {
+	const { token } = await gallery();
+	for ( const id of [ 'photo-pdf', 'photo-svg', 'photo-doc', 'album-text', 'secret-file', 'pub-pdf', 'pub-img' ] ) {
+		for ( const disp of [ 'attachment', 'inline', 'viewer' ] ) {
+			const r = await get( 'file', { m: token, id, disp } );
+			await r.arrayBuffer();
+			assert.equal( r.status, 404, `${ id } ${ disp }` );
+		}
+		for ( const large of [ '', '1' ] ) {
+			const r = await get( 'thumb', { m: token, id, large } );
+			await r.arrayBuffer();
+			assert.equal( r.status, 404, `thumb ${ id }` );
+		}
+	}
+	for ( const folder of [ 'secret', 'root-id', 'public', 'sub' ] ) {
+		assert.equal( await listNames( { m: token, folder } ), 404, folder );
+	}
+	const search = await get( 'search', { m: token, q: 'invoice' } );
+	await search.arrayBuffer();
+	assert.equal( search.status, 404 );
+	const zip = await fetch( `${ SITE }/?rest_route=/embed-drive/v1/zip/prepare&m=${ encodeURIComponent( token ) }`, {
+		method: 'POST',
+		headers: { 'Content-Type': 'application/json' },
+		body: JSON.stringify( { ids: [ 'photo-a', 'photo-pdf' ] } ),
+	} );
+	await zip.arrayBuffer();
+	assert.equal( zip.status, 404 );
+
+	const photo = await get( 'file', { m: token, id: 'album-photo', disp: 'inline' } );
+	assert.equal( photo.status, 200 );
+	assert.equal( photo.headers.get( 'content-type' ), 'image/png' );
+	await photo.arrayBuffer();
+	const large = await get( 'thumb', { m: token, id: 'photo-a', large: '1' } );
+	assert.equal( large.status, 200 );
+	await large.arrayBuffer();
+} );
+
+await it( 'SECURITY: a gallery without downloads still shows photos but will not send originals', async () => {
+	const { token } = await gallery( ' download="no"' );
+	const items = ( await ( await get( 'list', { m: token } ) ).json() ).items;
+	assert.ok( items.every( ( i ) => ! i.download ) );
+	const saved = await get( 'file', { m: token, id: 'photo-a', disp: 'attachment' } );
+	await saved.arrayBuffer();
+	assert.equal( saved.status, 404 );
+	const shown = await get( 'file', { m: token, id: 'photo-a', disp: 'inline' } );
+	await shown.arrayBuffer();
+	assert.equal( shown.status, 200 );
+} );
+
+await it( 'SECURITY: a gallery token cannot be turned into a file browser or widened', async () => {
+	const { token } = await gallery();
+	const [ data, sig ] = token.split( '.' );
+	const decoded = JSON.parse( Buffer.from( data, 'base64url' ).toString() );
+	for ( const change of [ { m: 'files' }, { r: 'root-id' }, { s: true }, { z: true } ] ) {
+		const forged = Buffer.from( JSON.stringify( { ...decoded, ...change } ) ).toString( 'base64url' ) + '.' + sig;
+		assert.equal( await listNames( { m: forged } ), 404, JSON.stringify( change ) );
+	}
+} );
+
+await it( 'the privacy tools export and erase one person\'s activity, and nobody else\'s', async () => {
+	const { export: exported, nobody, erased, after, bob_left: bob } = await test_( 'privacy' );
+	const values = exported.data.flatMap( ( item ) => item.data.map( ( d ) => d.value ) );
+	assert.ok( values.includes( 'alice-file.pdf' ) && values.includes( 'alice secret term' ) );
+	assert.ok( ! values.includes( 'bob-file.pdf' ) );
+	assert.equal( exported.done, true );
+	assert.deepEqual( nobody.data, [] );
+	assert.equal( erased.items_removed, true );
+	assert.deepEqual( after.data, [] );
+	assert.equal( bob.data.length, 1, "another person's entries stay" );
 } );
 
 const log = await ( await fetch( MOCK + '/__log' ) ).json();

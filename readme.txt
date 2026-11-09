@@ -4,7 +4,7 @@ Tags: google drive, file browser, documents, download, embed
 Requires at least: 6.0
 Tested up to: 7.1
 Requires PHP: 8.0
-Stable tag: 0.4.1
+Stable tag: 0.5.0
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -15,13 +15,14 @@ Show Google Drive folders and files on your site: file browser, search, single-f
 Embed Drive shows your Google Drive content on your WordPress site. It is open source and has no licence checks, upsells or tracking.
 
 * **File browser**: browse a folder with list or grid view, breadcrumbs and sorting.
-* **Previews**: images, PDFs, audio, video, text and Google Docs.
+* **Photo gallery**: the photos in a folder as square tiles, with subfolders as albums and a full-screen viewer.
+* **Previews**: images, PDFs, Word and Excel files, audio, video, text and Google Docs.
 * **Search**: search a folder and its subfolders.
 * **Single files**: embed one file, or add a download button or link.
 * **Downloads**: single files, or several as one ZIP.
 * **Multiple Google accounts**.
-* **Activity log**: previews, downloads and searches, stored only in your database.
-* **Email alerts** if a Google account stops working, or if requests to Google keep failing.
+* **Activity log**: previews, downloads and searches, stored only in your database. Works with WordPress's tools for exporting or erasing a person's data.
+* **Email alerts** if a Google account stops working, or if requests to Google keep failing. The settings screen also shows the last problem reaching Google.
 * **Gutenberg block and shortcode builder**.
 
 = Your files stay private =
@@ -64,7 +65,21 @@ A Drive shortcut can point to a file outside the chosen folder, so shortcuts are
 
 File lists are cached for 5 minutes. Use Clear file cache in the settings to refresh sooner.
 
+== Screenshots ==
+
+1. The file browser, with folders, document thumbnails and photos.
+2. A photo gallery, with a subfolder shown as an album.
+3. The full-screen viewer. Use the arrow keys or swipe to move between photos and files.
+4. The shortcode builder.
+5. Accounts and settings, including the connection status.
+
 == Changelog ==
+
+= 0.5.0 =
+* New: photo gallery module. It shows only the photos in a folder, and its visitor link can't reach anything else, not even other files in the same folder.
+* New: the settings screen shows the most recent problem reaching Google.
+* New: the activity log works with WordPress's personal data export and erase tools, and suggests text for your privacy policy.
+* Fixed: the block's wide and full width alignment now shows on the page.
 
 = 0.4.1 =
 * Added the WordPress.org contributor name. No changes to how the plugin works.

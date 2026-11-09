@@ -1,0 +1,46 @@
+name: Publish to WordPress.org
+
+# Runs when a release is published, which only happens once the maintainer has signed it.
+# Does nothing until the WordPress.org login is saved as the SVN_USERNAME and SVN_PASSWORD secrets.
+on:
+  release:
+    types: [published]
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Release tag to publish, such as v1.2.3'
+        required: true
+
+permissions:
+  contents: read
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check for the WordPress.org login
+        id: login
+        env:
+          SVN_USERNAME: ${{ secrets.SVN_USERNAME }}
+        run: |
+          if [ -z "$SVN_USERNAME" ]; then
+            echo "::notice::SVN_USERNAME isn't set, so nothing was sent to WordPress.org."
+            echo "ready=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "ready=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+        if: steps.login.outputs.ready == 'true'
+        with:
+          ref: ${{ github.event.release.tag_name || inputs.tag }}
+
+      - name: Publish
+        if: steps.login.outputs.ready == 'true'
+        env:
+          SVN_USERNAME: ${{ secrets.SVN_USERNAME }}
+          SVN_PASSWORD: ${{ secrets.SVN_PASSWORD }}
+          TAG: ${{ github.event.release.tag_name || inputs.tag }}
+        run: |
+          command -v svn > /dev/null || { sudo apt-get update -q && sudo apt-get install -y -q subversion; }
+          bin/deploy-wordpress-org.sh "${TAG#v}"

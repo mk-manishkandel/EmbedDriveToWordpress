@@ -7,13 +7,14 @@
 
 	const MODES = [
 		{ value: 'files', label: __( 'File browser', 'embed-drive' ) },
+		{ value: 'gallery', label: __( 'Photo gallery', 'embed-drive' ) },
 		{ value: 'search', label: __( 'Search box', 'embed-drive' ) },
 		{ value: 'embed', label: __( 'Embed one file', 'embed-drive' ) },
 		{ value: 'button', label: __( 'Download button', 'embed-drive' ) },
 		{ value: 'link', label: __( 'Download link', 'embed-drive' ) },
 	];
 
-	const wantsFolder = ( mode ) => mode === 'files' || mode === 'search';
+	const wantsFolder = ( mode ) => [ 'files', 'gallery', 'search' ].includes( mode );
 
 	function edit( { attributes: a, setAttributes: set } ) {
 		const accounts = window.EmbedDriveAccounts || [];
@@ -78,7 +79,7 @@
 						],
 						onChange: ( view ) => set( { view } ),
 					} ),
-				a.mode === 'files' &&
+				( a.mode === 'files' || a.mode === 'gallery' ) &&
 					el( SelectControl, {
 						label: __( 'Sort by', 'embed-drive' ),
 						value: a.sort,
@@ -88,6 +89,16 @@
 							{ value: 'size', label: __( 'Size', 'embed-drive' ) },
 						],
 						onChange: ( sort ) => set( { sort } ),
+					} ),
+				( a.mode === 'files' || a.mode === 'gallery' ) &&
+					el( SelectControl, {
+						label: __( 'Order', 'embed-drive' ),
+						value: a.order,
+						options: [
+							{ value: 'asc', label: __( 'Ascending', 'embed-drive' ) },
+							{ value: 'desc', label: __( 'Descending', 'embed-drive' ) },
+						],
+						onChange: ( order ) => set( { order } ),
 					} ),
 				( folderMode || a.mode === 'embed' ) &&
 					el( ToggleControl, {
@@ -101,7 +112,7 @@
 						checked: a.zip,
 						onChange: ( zip ) => set( { zip } ),
 					} ),
-				a.mode === 'files' &&
+				( a.mode === 'files' || a.mode === 'gallery' ) &&
 					el( TextControl, {
 						label: __( 'Minimum height (px)', 'embed-drive' ),
 						help: __( 'Use 0 to follow the plugin settings.', 'embed-drive' ),
@@ -116,6 +127,7 @@
 						onChange: ( search ) => set( { search } ),
 					} ),
 				folderMode &&
+					a.mode !== 'gallery' &&
 					el( ToggleControl, {
 						label: __( 'Allow previews', 'embed-drive' ),
 						checked: a.preview,
