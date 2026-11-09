@@ -1,16 +1,16 @@
 <?php
 /**
- * Plugin Name:       Embed Drive
+ * Plugin Name:       FileFolio – File Browser, Photo Gallery & Embeds for Google Drive
  * Plugin URI:        https://github.com/mk-manishkandel/EmbedDriveToWordpress
- * Description:       Show Google Drive folders and files on your site: file browser, search, single-file embeds and downloads. Open source, no licence keys, no upsells.
- * Version:           0.5.0
+ * Description:       Show Google Drive folders, photo galleries, file previews, search and downloads on your site with a block or shortcode. Read-only, no upsells.
+ * Version:           0.5.1
  * Requires at least: 6.0
  * Requires PHP:      8.0
  * Author:            Manish Kandel
  * Author URI:        https://github.com/mk-manishkandel
  * License:           GPL-2.0-or-later
  * License URI:       https://www.gnu.org/licenses/gpl-2.0.html
- * Text Domain:       embed-drive
+ * Text Domain:       filefolio
  * Domain Path:       /languages
  * Update URI:        https://github.com/mk-manishkandel/EmbedDriveToWordpress
  *
@@ -21,7 +21,20 @@ namespace EmbedDrive;
 
 defined( 'ABSPATH' ) || exit;
 
-define( 'EMBED_DRIVE_VERSION', '0.5.0' );
+// Two copies can be installed at once while a site switches between the GitHub and WordPress.org
+// copies, which live in different folders. Only the first one loaded runs.
+if ( defined( 'EMBED_DRIVE_VERSION' ) ) {
+	add_action(
+		'admin_notices',
+		static function (): void {
+			echo '<div class="notice notice-warning"><p>' . esc_html__( 'FileFolio is installed twice. Deactivate and delete the older copy; your settings are kept.', 'filefolio' ) . '</p></div>';
+		}
+	);
+
+	return;
+}
+
+define( 'EMBED_DRIVE_VERSION', '0.5.1' );
 define( 'EMBED_DRIVE_FILE', __FILE__ );
 define( 'EMBED_DRIVE_DIR', plugin_dir_path( __FILE__ ) );
 define( 'EMBED_DRIVE_URL', plugin_dir_url( __FILE__ ) );

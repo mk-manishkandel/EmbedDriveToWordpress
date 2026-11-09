@@ -133,7 +133,7 @@ final class Health {
 		foreach ( $health as $category => $entry ) {
 			$lines[] = sprintf(
 				/* translators: 1: what went wrong, 2: number of minutes, 3: date and time, 4: technical detail */
-				__( "- %1\$s: in %2\$d separate minutes, most recently %3\$s. %4\$s", 'embed-drive' ),
+				__( "- %1\$s: in %2\$d separate minutes, most recently %3\$s. %4\$s", 'filefolio' ),
 				self::label( (string) $category ),
 				(int) $entry['minutes'],
 				wp_date( 'j M Y H:i T', (int) $entry['last'] ),
@@ -143,10 +143,10 @@ final class Health {
 
 		$sent = wp_mail(
 			Settings::notify_email(),
-			sprintf( /* translators: %s: site name */ __( '[%s] Embed Drive had trouble with Google Drive', 'embed-drive' ), wp_specialchars_decode( get_bloginfo( 'name' ), ENT_QUOTES ) ),
+			sprintf( /* translators: %s: site name */ __( '[%s] FileFolio had trouble with Google Drive', 'filefolio' ), wp_specialchars_decode( get_bloginfo( 'name' ), ENT_QUOTES ) ),
 			sprintf(
 				/* translators: 1: list of problems, 2: site address, 3: plugin version, 4: settings URL */
-				__( "Embed Drive could not always get Drive content from Google, so some visitors may have seen an error instead.\n\n%1\$s\n\nIf this happened once, it was probably a brief outage at Google or your host and needs nothing from you. If this email keeps coming, the problem has not gone away.\n\nSite: %2\$s\nEmbed Drive version: %3\$s\n\nYou can turn this email off in the plugin settings: %4\$s", 'embed-drive' ),
+				__( "FileFolio could not always get Drive content from Google, so some visitors may have seen an error instead.\n\n%1\$s\n\nIf this happened once, it was probably a brief outage at Google or your host and needs nothing from you. If this email keeps coming, the problem has not gone away.\n\nSite: %2\$s\nFileFolio version: %3\$s\n\nYou can turn this email off in the plugin settings: %4\$s", 'filefolio' ),
 				implode( "\n", $lines ),
 				home_url(),
 				EMBED_DRIVE_VERSION,
@@ -162,11 +162,11 @@ final class Health {
 
 	private static function label( string $category ): string {
 		$labels = [
-			'network' => __( 'Could not connect to Google', 'embed-drive' ),
-			'signin'  => __( 'Could not renew access to Google', 'embed-drive' ),
-			'auth'    => __( 'Google did not accept the sign-in', 'embed-drive' ),
-			'refused' => __( 'Google refused the request or asked the site to slow down', 'embed-drive' ),
-			'server'  => __( 'Google had an internal error', 'embed-drive' ),
+			'network' => __( 'Could not connect to Google', 'filefolio' ),
+			'signin'  => __( 'Could not renew access to Google', 'filefolio' ),
+			'auth'    => __( 'Google did not accept the sign-in', 'filefolio' ),
+			'refused' => __( 'Google refused the request or asked the site to slow down', 'filefolio' ),
+			'server'  => __( 'Google had an internal error', 'filefolio' ),
 		];
 
 		return $labels[ $category ];

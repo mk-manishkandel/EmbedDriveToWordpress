@@ -306,6 +306,20 @@ add_action(
 							$bob_left  = call_user_func( $exporters['embed-drive']['callback'], get_userdata( $bob )->user_email, 1 );
 
 							return compact( 'export', 'nobody', 'erased', 'after', 'bob_left' );
+						case 'two_copies':
+							$active = (array) get_option( 'active_plugins', [] );
+							defined( 'WP_UNINSTALL_PLUGIN' ) || define( 'WP_UNINSTALL_PLUGIN', 'filefolio/embed-drive.php' );
+							$kept = [];
+							foreach ( [ 'filefolio', 'embed-drive' ] as $folder ) {
+								include WP_PLUGIN_DIR . '/' . $folder . '/uninstall.php';
+								$kept[ $folder ] = false !== get_option( 'embed_drive_accounts' ) && false !== get_option( 'embed_drive_settings' );
+							}
+
+							return [
+								'both_active' => in_array( 'embed-drive/embed-drive.php', $active, true ) && in_array( 'filefolio/embed-drive.php', $active, true ),
+								'running'     => EMBED_DRIVE_FILE,
+								'kept'        => $kept,
+							];
 						case 'health_summary':
 							global $embed_drive_mails;
 							$embed_drive_mails = [];

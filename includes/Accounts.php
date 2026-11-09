@@ -77,14 +77,14 @@ final class Accounts {
 	public static function access_token( string $id, bool $force_refresh = false ) {
 		$account = self::get( $id );
 		if ( ! $account ) {
-			return new WP_Error( 'no_account', __( 'The Google account for this content is not connected.', 'embed-drive' ) );
+			return new WP_Error( 'no_account', __( 'The Google account for this content is not connected.', 'filefolio' ) );
 		}
 
 		$token = self::read_token( $id );
 		if ( ! $token || empty( $token['refresh_token'] ) ) {
 			self::mark_lost( $id );
 
-			return new WP_Error( 'invalid_grant', __( 'The stored Google credentials can no longer be read.', 'embed-drive' ) );
+			return new WP_Error( 'invalid_grant', __( 'The stored Google credentials can no longer be read.', 'filefolio' ) );
 		}
 
 		if ( ! $force_refresh && (int) $token['expires_at'] > time() + 60 ) {
@@ -157,10 +157,10 @@ final class Accounts {
 
 		wp_mail(
 			Settings::notify_email(),
-			sprintf( /* translators: %s: site name */ __( '[%s] Embed Drive lost access to Google Drive', 'embed-drive' ), wp_specialchars_decode( get_bloginfo( 'name' ), ENT_QUOTES ) ),
+			sprintf( /* translators: %s: site name */ __( '[%s] FileFolio lost access to Google Drive', 'filefolio' ), wp_specialchars_decode( get_bloginfo( 'name' ), ENT_QUOTES ) ),
 			sprintf(
 				/* translators: 1: Google account email, 2: settings URL */
-				__( "Embed Drive can no longer reach the Google account %1\$s, so its Drive content is not showing on your site.\n\nSign in again here:\n%2\$s", 'embed-drive' ),
+				__( "FileFolio can no longer reach the Google account %1\$s, so its Drive content is not showing on your site.\n\nSign in again here:\n%2\$s", 'filefolio' ),
 				$account['email'],
 				admin_url( 'admin.php?page=embed-drive' )
 			)

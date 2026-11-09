@@ -6,7 +6,7 @@
 set -euo pipefail
 cd "$(dirname "$0")/.."
 VERSION="$1"
-URL="${2:-https://plugins.svn.wordpress.org/embed-drive}"
+URL="${2:-https://plugins.svn.wordpress.org/filefolio}"
 ROOT="$(pwd)"
 
 grep -q "^Stable tag: ${VERSION}$" readme.txt || { echo "readme.txt Stable tag is not ${VERSION}"; exit 1; }
@@ -24,7 +24,7 @@ if [ -e "$WORK/svn/tags/$VERSION" ]; then
 	exit 1
 fi
 
-rsync -a --delete --exclude=.svn "$WORK/plugin/embed-drive/" "$WORK/svn/trunk/"
+rsync -a --delete --exclude=.svn "$WORK/plugin/filefolio/" "$WORK/svn/trunk/"
 rsync -a --delete --exclude=.svn "$ROOT/.wordpress-org/" "$WORK/svn/assets/"
 
 cd "$WORK/svn"

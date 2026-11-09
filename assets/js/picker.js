@@ -35,7 +35,7 @@
 	 * @param {Function} options.onSelect Called with { id, name }.
 	 */
 	function open( { account, want, onSelect } ) {
-		const trail = [ { id: '', name: __( 'Google Drive', 'embed-drive' ) } ];
+		const trail = [ { id: '', name: __( 'Google Drive', 'filefolio' ) } ];
 		const crumbs = node( 'div', { className: 'embed-drive-picker__crumbs' } );
 		const list = node( 'ul', { className: 'embed-drive-picker__list' } );
 		const status = node( 'p', { className: 'embed-drive-picker__status' } );
@@ -43,7 +43,7 @@
 		const useFolder = node( 'button', {
 			type: 'button',
 			className: 'button button-primary',
-			textContent: __( 'Use this folder', 'embed-drive' ),
+			textContent: __( 'Use this folder', 'filefolio' ),
 			hidden: want !== 'folder',
 			disabled: true,
 		} );
@@ -53,13 +53,13 @@
 			node(
 				'div',
 				{ className: 'embed-drive-picker__head' },
-				node( 'h2', { textContent: want === 'folder' ? __( 'Choose a folder', 'embed-drive' ) : __( 'Choose a file', 'embed-drive' ) } ),
+				node( 'h2', { textContent: want === 'folder' ? __( 'Choose a folder', 'filefolio' ) : __( 'Choose a file', 'filefolio' ) } ),
 				node(
 					'button',
 					{
 						type: 'button',
 						className: 'embed-drive-picker__close',
-						ariaLabel: __( 'Close', 'embed-drive' ),
+						ariaLabel: __( 'Close', 'filefolio' ),
 						onclick: () => dialog.close(),
 					},
 					glyph( CLOSE )
@@ -74,7 +74,7 @@
 				node( 'button', {
 					type: 'button',
 					className: 'button',
-					textContent: __( 'Cancel', 'embed-drive' ),
+					textContent: __( 'Cancel', 'filefolio' ),
 					onclick: () => dialog.close(),
 				} ),
 				useFolder
@@ -136,14 +136,14 @@
 					} )
 			);
 			if ( ! list.children.length ) {
-				status.textContent = __( 'Nothing to choose here.', 'embed-drive' );
+				status.textContent = __( 'Nothing to choose here.', 'filefolio' );
 			}
 		}
 
 		function load() {
 			const here = current();
 			useFolder.disabled = ! here.id || here.id === 'shared';
-			status.textContent = __( 'Loading…', 'embed-drive' );
+			status.textContent = __( 'Loading…', 'filefolio' );
 			list.replaceChildren();
 			wp.apiFetch( {
 				path:
@@ -157,7 +157,7 @@
 					render( data.items );
 				} )
 				.catch( ( error ) => {
-					status.textContent = error.message || __( 'Could not load this folder.', 'embed-drive' );
+					status.textContent = error.message || __( 'Could not load this folder.', 'filefolio' );
 				} );
 		}
 

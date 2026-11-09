@@ -116,7 +116,7 @@ final class Updater {
 	}
 
 	private static function unsigned(): \WP_Error {
-		return new \WP_Error( 'embed_drive_unsigned', __( 'This update was refused because it is not signed by the Embed Drive project.', 'embed-drive' ) );
+		return new \WP_Error( 'embed_drive_unsigned', __( 'This update was refused because it is not signed by the FileFolio project.', 'filefolio' ) );
 	}
 
 	/**
@@ -137,7 +137,7 @@ final class Updater {
 		}
 
 		return (object) [
-			'name'          => 'Embed Drive',
+			'name'          => 'FileFolio',
 			'slug'          => 'embed-drive',
 			'version'       => $release['version'],
 			'author'        => '<a href="https://github.com/mk-manishkandel">Manish Kandel</a>',

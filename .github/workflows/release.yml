@@ -28,7 +28,7 @@ jobs:
       - name: Build the plugin ZIPs
         run: |
           bin/build-zip.sh --wordpress-org
-          mv build/embed-drive.zip embed-drive-wordpress-org.zip
+          mv build/embed-drive.zip filefolio-wordpress-org.zip
           bin/build-zip.sh
 
       # Stays a draft, hidden from sites, until bin/sign-release.mjs signs it on the maintainer's computer.
@@ -38,4 +38,4 @@ jobs:
         run: |
           bin/release-notes.sh "${GITHUB_REF_NAME#v}" > notes.md
           test -s notes.md || { echo "No changelog entry for this version in readme.txt"; exit 1; }
-          gh release create "$GITHUB_REF_NAME" build/embed-drive.zip embed-drive-wordpress-org.zip --title "Embed Drive ${GITHUB_REF_NAME#v}" --notes-file notes.md --draft
+          gh release create "$GITHUB_REF_NAME" build/embed-drive.zip filefolio-wordpress-org.zip --title "FileFolio ${GITHUB_REF_NAME#v}" --notes-file notes.md --draft

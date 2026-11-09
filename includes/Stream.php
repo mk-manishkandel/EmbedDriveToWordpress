@@ -119,7 +119,7 @@ final class Stream {
 				Health::record( 'network' );
 			}
 
-			return new WP_Error( 'network', __( 'Could not reach Google Drive.', 'embed-drive' ) );
+			return new WP_Error( 'network', __( 'Could not reach Google Drive.', 'filefolio' ) );
 		}
 
 		return $status;
@@ -150,7 +150,7 @@ final class Stream {
 			wp_delete_file( $temp );
 			Health::record( 'network' );
 
-			return new WP_Error( 'network', __( 'Could not reach Google Drive.', 'embed-drive' ) );
+			return new WP_Error( 'network', __( 'Could not reach Google Drive.', 'filefolio' ) );
 		}
 
 		$status = (int) wp_remote_retrieve_response_code( $response );
@@ -177,7 +177,9 @@ final class Stream {
 	public static function is_google_url( string $url ): bool {
 		$host  = (string) wp_parse_url( $url, PHP_URL_HOST );
 		$https = 'https' === wp_parse_url( $url, PHP_URL_SCHEME ) || (bool) apply_filters( 'embed_drive_allow_http_thumbnails', false );
-		// Where the account's token may be sent. Thumbnails are passed through this site, not loaded from Google.
+		// Not assets: this is the allowlist of hosts the server may send the site owner's Google token to
+		// when it fetches a Drive thumbnail on their behalf. The image is then passed through this site,
+		// so visitors' browsers never load anything from these hosts.
 		// phpcs:ignore PluginCheck.CodeAnalysis.Offloading.OffloadedContent
 		foreach ( (array) apply_filters( 'embed_drive_thumbnail_hosts', [ 'googleusercontent.com', 'google.com', 'googleapis.com' ] ) as $allowed ) {
 			if ( $https && ( $host === $allowed || str_ends_with( $host, '.' . $allowed ) ) ) {
@@ -208,7 +210,7 @@ final class Stream {
 			}
 		}
 
-		return new WP_Error( 'unsafe_redirect', __( 'Could not reach Google Drive.', 'embed-drive' ) );
+		return new WP_Error( 'unsafe_redirect', __( 'Could not reach Google Drive.', 'filefolio' ) );
 	}
 
 	/**
@@ -276,8 +278,8 @@ final class Stream {
 
 		// Google refuses to export anything over 10 MB.
 		return 403 === $upstream && null !== $delivery['export']
-			? new WP_Error( 'export_too_large', __( 'This Google document is too large for Google to export.', 'embed-drive' ), [ 'status' => 502 ] )
-			: new WP_Error( 'upstream', __( 'Google Drive would not provide this file.', 'embed-drive' ), [ 'status' => 502 ] );
+			? new WP_Error( 'export_too_large', __( 'This Google document is too large for Google to export.', 'filefolio' ), [ 'status' => 502 ] )
+			: new WP_Error( 'upstream', __( 'Google Drive would not provide this file.', 'filefolio' ), [ 'status' => 502 ] );
 	}
 
 	public static function prepare_output(): void {

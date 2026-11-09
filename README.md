@@ -1,6 +1,8 @@
 <img src="assets/icon/icon-128x128.png" width="64" height="64" alt="">
 
-# Embed Drive
+# FileFolio
+
+File browser, photo gallery and embeds for Google Drive, on WordPress. Formerly **Embed Drive**.
 
 Show Google Drive folders and files on your WordPress site. Open source, with no licence keys, upsells or tracking.
 
@@ -28,8 +30,8 @@ The plugin has been submitted to the WordPress.org plugin directory and is waiti
 ## Quick start
 
 1. Upload `embed-drive.zip` under **Plugins > Add New > Upload Plugin**, then activate it.
-2. Create your Google app and sign in under **Embed Drive > Accounts & Settings**. See [Connecting to Google](#connecting-to-google).
-3. Add the **Embed Drive** block to a page, or create a shortcode under **Embed Drive > Shortcode Builder**.
+2. Create your Google app and sign in under **FileFolio > Accounts & Settings**. See [Connecting to Google](#connecting-to-google).
+3. Add the **FileFolio** block to a page, or create a shortcode under **FileFolio > Shortcode Builder**.
 
 Requires WordPress 6.0+ and PHP 8.0+.
 
@@ -42,7 +44,7 @@ Each site owner connects with **their own Google app**. Google requires an app f
 3. Open the OAuth consent screen (Google Auth Platform) and fill in the app name and your email. Choose **External**, or **Internal** if your Google Workspace organisation will be the only one using it.
 4. Under **Data Access**, add the `https://www.googleapis.com/auth/drive.readonly` scope. For an External app, **publish it** under **Audience**: in Testing mode your sign-in expires after 7 days.
 5. Under **Clients**, create a **Web application** client. Add the redirect URI shown on the plugin's settings screen.
-6. Paste the client ID and secret into **Embed Drive > Accounts & Settings**, save, and click **Sign in with Google**.
+6. Paste the client ID and secret into **FileFolio > Accounts & Settings**, save, and click **Sign in with Google**.
 
 An External app shows "Google hasn't verified this app" at sign-in. That's expected for your own app: choose **Advanced**, then continue to your app. Google allows up to 100 people to do this per app, which is plenty for one site's owner.
 
@@ -115,7 +117,7 @@ node bin/check-libs.mjs  # Look up the bundled libraries in GitHub's security ad
    ```sh
    git tag v1.2.3 && git push origin main v1.2.3
    ```
-3. GitHub Actions runs the tests, checks that the versions match the tag, builds `embed-drive.zip` and `embed-drive-wordpress-org.zip`, and creates a **draft** release, which sites can't see yet.
+3. GitHub Actions runs the tests, checks that the versions match the tag, builds `embed-drive.zip` and `filefolio-wordpress-org.zip`, and creates a **draft** release, which sites can't see yet.
 4. Sign and publish it on your own computer, with the private key:
    ```sh
    node bin/sign-release.mjs 1.2.3 ~/embed-drive-signing.pem
@@ -125,7 +127,7 @@ Installed sites normally see the update within a day, or straight away with **Ch
 
 ## Independence
 
-Embed Drive is an independent project, written from scratch. It isn't affiliated with Google or any commercial Google Drive plugin. Google Drive is a trademark of Google LLC.
+FileFolio is an independent project, written from scratch. It isn't affiliated with Google or any commercial Google Drive plugin. Google Drive is a trademark of Google LLC.
 
 ## Licence
 

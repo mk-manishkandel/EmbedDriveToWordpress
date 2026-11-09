@@ -22,7 +22,7 @@ final class Privacy {
 
 	public static function register_exporter( array $exporters ): array {
 		$exporters['embed-drive'] = [
-			'exporter_friendly_name' => __( 'Embed Drive activity log', 'embed-drive' ),
+			'exporter_friendly_name' => __( 'FileFolio activity log', 'filefolio' ),
 			'callback'               => [ self::class, 'export' ],
 		];
 
@@ -31,7 +31,7 @@ final class Privacy {
 
 	public static function register_eraser( array $erasers ): array {
 		$erasers['embed-drive'] = [
-			'eraser_friendly_name' => __( 'Embed Drive activity log', 'embed-drive' ),
+			'eraser_friendly_name' => __( 'FileFolio activity log', 'filefolio' ),
 			'callback'             => [ self::class, 'erase' ],
 		];
 
@@ -48,22 +48,22 @@ final class Privacy {
 		}
 
 		$events = [
-			'preview'  => __( 'Previewed', 'embed-drive' ),
-			'download' => __( 'Downloaded', 'embed-drive' ),
-			'zip'      => __( 'Downloaded a ZIP', 'embed-drive' ),
-			'search'   => __( 'Searched', 'embed-drive' ),
+			'preview'  => __( 'Previewed', 'filefolio' ),
+			'download' => __( 'Downloaded', 'filefolio' ),
+			'zip'      => __( 'Downloaded a ZIP', 'filefolio' ),
+			'search'   => __( 'Searched', 'filefolio' ),
 		];
 		$rows   = ActivityLog::for_user( (int) $user->ID, max( 1, $page ), self::PER_PAGE );
 		$data   = [];
 		foreach ( $rows as $row ) {
 			$data[] = [
 				'group_id'    => 'embed-drive-activity',
-				'group_label' => __( 'Embed Drive activity', 'embed-drive' ),
+				'group_label' => __( 'FileFolio activity', 'filefolio' ),
 				'item_id'     => 'embed-drive-activity-' . $row['id'],
 				'data'        => [
-					[ 'name' => __( 'Date (UTC)', 'embed-drive' ), 'value' => $row['created_at'] ],
-					[ 'name' => __( 'Action', 'embed-drive' ), 'value' => $events[ $row['event'] ] ?? $row['event'] ],
-					[ 'name' => __( 'File or search', 'embed-drive' ), 'value' => $row['detail'] ],
+					[ 'name' => __( 'Date (UTC)', 'filefolio' ), 'value' => $row['created_at'] ],
+					[ 'name' => __( 'Action', 'filefolio' ), 'value' => $events[ $row['event'] ] ?? $row['event'] ],
+					[ 'name' => __( 'File or search', 'filefolio' ), 'value' => $row['detail'] ],
 				],
 			];
 		}
@@ -94,12 +94,12 @@ final class Privacy {
 			return;
 		}
 		wp_add_privacy_policy_content(
-			'Embed Drive',
+			'FileFolio',
 			wp_kses_post(
 				wpautop(
-					__( 'This site shows files from Google Drive. The files are passed on through this site, so your browser does not connect to Google for them, except for previews of files that are already shared publicly on Google Drive.', 'embed-drive' )
+					__( 'This site shows files from Google Drive. The files are passed on through this site, so your browser does not connect to Google for them, except for previews of files that are already shared publicly on Google Drive.', 'filefolio' )
 					. "\n\n"
-					. __( 'If the activity log is turned on, this site records when a file is previewed or downloaded and what is searched for, with the date and, if you are logged in, your user account. Your IP address is not recorded. Entries are deleted automatically after the number of days the site owner chooses.', 'embed-drive' )
+					. __( 'If the activity log is turned on, this site records when a file is previewed or downloaded and what is searched for, with the date and, if you are logged in, your user account. Your IP address is not recorded. Entries are deleted automatically after the number of days the site owner chooses.', 'filefolio' )
 				)
 			)
 		);

@@ -40,7 +40,7 @@ final class Drive {
 
 		// Google still answers for a file in the trash, but its owner has taken it away.
 		return ! is_wp_error( $file ) && ! empty( $file['trashed'] )
-			? new WP_Error( 'not_found', __( 'File not found.', 'embed-drive' ), [ 'status' => 404 ] )
+			? new WP_Error( 'not_found', __( 'File not found.', 'filefolio' ), [ 'status' => 404 ] )
 			: $file;
 	}
 
@@ -302,7 +302,7 @@ final class Drive {
 			if ( is_wp_error( $response ) ) {
 				Health::record( 'network' );
 
-				return new WP_Error( 'network', __( 'Could not reach Google Drive.', 'embed-drive' ) );
+				return new WP_Error( 'network', __( 'Could not reach Google Drive.', 'filefolio' ) );
 			}
 
 			$status = (int) wp_remote_retrieve_response_code( $response );
@@ -319,7 +319,7 @@ final class Drive {
 
 		return new WP_Error(
 			404 === $status ? 'not_found' : 'drive_error',
-			404 === $status ? __( 'File not found.', 'embed-drive' ) : __( 'Google Drive returned an error.', 'embed-drive' ),
+			404 === $status ? __( 'File not found.', 'filefolio' ) : __( 'Google Drive returned an error.', 'filefolio' ),
 			[ 'status' => $status ]
 		);
 	}

@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
 # Builds build/embed-drive.zip, the installable plugin. Excludes the relay and everything dev-only.
-# With --wordpress-org, builds the copy for the WordPress.org directory instead: WordPress.org
-# delivers its own updates and doesn't allow a plugin to update itself, so the GitHub updater is left out.
+# With --wordpress-org, builds the copy for the WordPress.org directory instead, in a filefolio folder to
+# match its slug there. WordPress.org delivers its own updates and doesn't allow a plugin to update
+# itself, so the GitHub updater is left out.
 set -euo pipefail
 cd "$(dirname "$0")/.."
 
@@ -18,7 +19,12 @@ if [ "${1:-}" = "--wordpress-org" ]; then
 		echo "The WordPress.org copy still mentions the GitHub updater"
 		exit 1
 	fi
+	mv build/embed-drive build/filefolio
+	(cd build && zip -qr embed-drive.zip filefolio)
+	rm -rf build/filefolio
+	echo "Built build/embed-drive.zip ($1)"
+	exit 0
 fi
 (cd build && zip -qr embed-drive.zip embed-drive)
 rm -rf build/embed-drive
-echo "Built build/embed-drive.zip${1:+ ($1)}"
+echo "Built build/embed-drive.zip"

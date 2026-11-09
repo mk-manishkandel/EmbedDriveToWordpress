@@ -29,42 +29,42 @@ final class Modules {
 				'rest'   => rest_url( Rest::NS . '/' ),
 				'viewer' => EMBED_DRIVE_URL . 'assets/viewer/viewer.html?v=' . EMBED_DRIVE_VERSION,
 				'i18n' => [
-					'loading'   => __( 'Loading…', 'embed-drive' ),
-					'empty'     => __( 'This folder is empty.', 'embed-drive' ),
-					'noResults' => __( 'No files found.', 'embed-drive' ),
-					'error'     => __( 'Something went wrong. Please try again.', 'embed-drive' ),
-					'search'    => __( 'Search files', 'embed-drive' ),
-					'clear'     => __( 'Clear search', 'embed-drive' ),
-					'truncated' => __( 'Some results may be missing. Try a more specific search.', 'embed-drive' ),
-					'name'      => __( 'Name', 'embed-drive' ),
-					'modified'  => __( 'Modified', 'embed-drive' ),
-					'size'      => __( 'Size', 'embed-drive' ),
-					'sort'      => __( 'Sort by', 'embed-drive' ),
-					'listView'  => __( 'List view', 'embed-drive' ),
-					'gridView'  => __( 'Grid view', 'embed-drive' ),
-					'download'  => __( 'Download', 'embed-drive' ),
-					'preview'   => __( 'Preview', 'embed-drive' ),
-					'close'     => __( 'Close', 'embed-drive' ),
-					'more'      => __( 'Load more', 'embed-drive' ),
-					'home'      => __( 'Go back to the start folder', 'embed-drive' ),
-					'refresh'   => __( 'Refresh', 'embed-drive' ),
-					'actions'   => __( 'More actions', 'embed-drive' ),
-					'results'   => __( 'Search results', 'embed-drive' ),
-					'ascending' => __( 'Ascending', 'embed-drive' ),
-					'descending' => __( 'Descending', 'embed-drive' ),
-					'selectAll' => __( 'Select all', 'embed-drive' ),
-					'selectNone' => __( 'Deselect all', 'embed-drive' ),
-					'top'       => __( 'Scroll to top', 'embed-drive' ),
-					'previous'  => __( 'Previous file', 'embed-drive' ),
-					'next'      => __( 'Next file', 'embed-drive' ),
-					'firstPage' => __( 'Only the first page can be shown here. Download the file to see all of it.', 'embed-drive' ),
-					'noPreview' => __( 'A preview is not available for this file. Please download it instead.', 'embed-drive' ),
-					'zip'       => __( 'Download selected', 'embed-drive' ),
-					'preparing' => __( 'Preparing ZIP…', 'embed-drive' ),
-					'select'    => __( 'Select', 'embed-drive' ),
-					'crumbs'    => __( 'Folder path', 'embed-drive' ),
-					'noPhotos'  => __( 'There are no photos here.', 'embed-drive' ),
-					'photo'     => __( 'Open photo', 'embed-drive' ),
+					'loading'   => __( 'Loading…', 'filefolio' ),
+					'empty'     => __( 'This folder is empty.', 'filefolio' ),
+					'noResults' => __( 'No files found.', 'filefolio' ),
+					'error'     => __( 'Something went wrong. Please try again.', 'filefolio' ),
+					'search'    => __( 'Search files', 'filefolio' ),
+					'clear'     => __( 'Clear search', 'filefolio' ),
+					'truncated' => __( 'Some results may be missing. Try a more specific search.', 'filefolio' ),
+					'name'      => __( 'Name', 'filefolio' ),
+					'modified'  => __( 'Modified', 'filefolio' ),
+					'size'      => __( 'Size', 'filefolio' ),
+					'sort'      => __( 'Sort by', 'filefolio' ),
+					'listView'  => __( 'List view', 'filefolio' ),
+					'gridView'  => __( 'Grid view', 'filefolio' ),
+					'download'  => __( 'Download', 'filefolio' ),
+					'preview'   => __( 'Preview', 'filefolio' ),
+					'close'     => __( 'Close', 'filefolio' ),
+					'more'      => __( 'Load more', 'filefolio' ),
+					'home'      => __( 'Go back to the start folder', 'filefolio' ),
+					'refresh'   => __( 'Refresh', 'filefolio' ),
+					'actions'   => __( 'More actions', 'filefolio' ),
+					'results'   => __( 'Search results', 'filefolio' ),
+					'ascending' => __( 'Ascending', 'filefolio' ),
+					'descending' => __( 'Descending', 'filefolio' ),
+					'selectAll' => __( 'Select all', 'filefolio' ),
+					'selectNone' => __( 'Deselect all', 'filefolio' ),
+					'top'       => __( 'Scroll to top', 'filefolio' ),
+					'previous'  => __( 'Previous file', 'filefolio' ),
+					'next'      => __( 'Next file', 'filefolio' ),
+					'firstPage' => __( 'Only the first page can be shown here. Download the file to see all of it.', 'filefolio' ),
+					'noPreview' => __( 'A preview is not available for this file. Please download it instead.', 'filefolio' ),
+					'zip'       => __( 'Download selected', 'filefolio' ),
+					'preparing' => __( 'Preparing ZIP…', 'filefolio' ),
+					'select'    => __( 'Select', 'filefolio' ),
+					'crumbs'    => __( 'Folder path', 'filefolio' ),
+					'noPhotos'  => __( 'There are no photos here.', 'filefolio' ),
+					'photo'     => __( 'Open photo', 'filefolio' ),
 				],
 			]
 		);
@@ -130,7 +130,7 @@ final class Modules {
 	public static function render( $atts ): string {
 		// Anyone who can write a post could otherwise publish any file in the connected Drive.
 		if ( ! self::author_may_embed() ) {
-			return self::admin_notice( __( 'Embed Drive: this content is hidden because the author of this post is not allowed to embed Drive files.', 'embed-drive' ) );
+			return self::admin_notice( __( 'FileFolio: this content is hidden because the author of this post is not allowed to embed Drive files.', 'filefolio' ) );
 		}
 
 		$a = shortcode_atts(
@@ -161,14 +161,14 @@ final class Modules {
 		if ( '' === $target ) {
 			return self::admin_notice(
 				'folder' === $kind
-					? __( 'Embed Drive: choose a folder for this module.', 'embed-drive' )
-					: __( 'Embed Drive: choose a file for this module.', 'embed-drive' )
+					? __( 'FileFolio: choose a folder for this module.', 'filefolio' )
+					: __( 'FileFolio: choose a file for this module.', 'filefolio' )
 			);
 		}
 
 		$account = (string) $a['account'] ?: Accounts::default_id();
 		if ( ! Accounts::get( $account ) ) {
-			return self::admin_notice( __( 'Embed Drive: the Google account for this module is not connected.', 'embed-drive' ) );
+			return self::admin_notice( __( 'FileFolio: the Google account for this module is not connected.', 'filefolio' ) );
 		}
 
 		// Embeds keep their download link off unless asked for; everything else defaults to on.
@@ -217,18 +217,18 @@ final class Modules {
 			'<div class="embed-drive"%s data-embed-drive="%s"><noscript>%s</noscript></div>',
 			$min_height ? sprintf( ' style="--ed-min-height:%dpx"', $min_height ) : '',
 			esc_attr( (string) wp_json_encode( $config ) ),
-			'gallery' === $mode ? esc_html__( 'Please enable JavaScript to see these photos.', 'embed-drive' ) : esc_html__( 'Please enable JavaScript to browse these files.', 'embed-drive' )
+			'gallery' === $mode ? esc_html__( 'Please enable JavaScript to see these photos.', 'filefolio' ) : esc_html__( 'Please enable JavaScript to browse these files.', 'filefolio' )
 		);
 	}
 
 	private static function render_single( string $mode, string $token, string $account, string $id, array $a, bool $download ): string {
 		$file = ( new Drive( $account ) )->get_file( $id );
 		if ( is_wp_error( $file ) ) {
-			return self::admin_notice( __( 'Embed Drive: this file could not be loaded from Google Drive.', 'embed-drive' ) )
-				. '<p class="embed-drive-unavailable">' . esc_html__( 'This content is not available right now.', 'embed-drive' ) . '</p>';
+			return self::admin_notice( __( 'FileFolio: this file could not be loaded from Google Drive.', 'filefolio' ) )
+				. '<p class="embed-drive-unavailable">' . esc_html__( 'This content is not available right now.', 'filefolio' ) . '</p>';
 		}
 		if ( Drive::is_folder( $file ) ) {
-			return self::admin_notice( __( 'Embed Drive: this module needs a file, not a folder.', 'embed-drive' ) );
+			return self::admin_notice( __( 'FileFolio: this module needs a file, not a folder.', 'filefolio' ) );
 		}
 
 		$name         = (string) $file['name'];
@@ -239,7 +239,7 @@ final class Modules {
 			return sprintf( '<a class="embed-drive-link" href="%s" rel="nofollow">%s</a>', esc_url( $download_url ), esc_html( $a['label'] ?: $name ) );
 		}
 		if ( 'button' === $mode ) {
-			return sprintf( '<a class="embed-drive-button" href="%s" rel="nofollow">%s</a>', esc_url( $download_url ), esc_html( $a['label'] ?: sprintf( /* translators: %s: file name */ __( 'Download %s', 'embed-drive' ), $name ) ) );
+			return sprintf( '<a class="embed-drive-button" href="%s" rel="nofollow">%s</a>', esc_url( $download_url ), esc_html( $a['label'] ?: sprintf( /* translators: %s: file name */ __( 'Download %s', 'filefolio' ), $name ) ) );
 		}
 
 		$inline = esc_url( Rest::file_url( $token, $id, 'inline' ) );
@@ -261,7 +261,7 @@ final class Modules {
 				} elseif ( ! empty( $file['thumbnailLink'] ) ) {
 					$body = sprintf( '<img src="%s" alt="%s" loading="lazy" />', esc_url( add_query_arg( [ 'm' => $token, 'id' => $id, 'large' => 1 ], rest_url( Rest::NS . '/thumb' ) ) ), esc_attr( $name ) );
 				} else {
-					$body = '<p>' . esc_html__( 'This file type cannot be shown on the page.', 'embed-drive' ) . '</p>';
+					$body = '<p>' . esc_html__( 'This file type cannot be shown on the page.', 'filefolio' ) . '</p>';
 				}
 				break;
 			case 'pdf':
@@ -269,14 +269,14 @@ final class Modules {
 				$body = sprintf( '<iframe src="%s" title="%s" height="%d" loading="lazy"></iframe>', $inline, esc_attr( $name ), $height );
 				break;
 			default:
-				$body = '<p>' . esc_html__( 'This file type cannot be shown on the page.', 'embed-drive' ) . '</p>';
+				$body = '<p>' . esc_html__( 'This file type cannot be shown on the page.', 'filefolio' ) . '</p>';
 				if ( ! $download ) {
 					$body .= sprintf( '<p>%s</p>', esc_html( $name ) );
 				}
 		}
 
 		$footer = $download
-			? sprintf( '<p class="embed-drive-embed-download"><a href="%s" rel="nofollow">%s</a></p>', esc_url( $download_url ), esc_html( sprintf( /* translators: %s: file name */ __( 'Download %s', 'embed-drive' ), $name ) ) )
+			? sprintf( '<p class="embed-drive-embed-download"><a href="%s" rel="nofollow">%s</a></p>', esc_url( $download_url ), esc_html( sprintf( /* translators: %s: file name */ __( 'Download %s', 'filefolio' ), $name ) ) )
 			: '';
 
 		return '<figure class="embed-drive-embed">' . $body . $footer . '</figure>';

@@ -45,13 +45,13 @@ final class OAuth {
 	 */
 	public static function start(): void {
 		if ( ! current_user_can( 'manage_options' ) ) {
-			wp_die( esc_html__( 'You are not allowed to connect Google accounts.', 'embed-drive' ), '', [ 'response' => 403 ] );
+			wp_die( esc_html__( 'You are not allowed to connect Google accounts.', 'filefolio' ), '', [ 'response' => 403 ] );
 		}
 		check_admin_referer( 'embed_drive_oauth_start' );
 
 		$via = isset( $_GET['via'] ) && 'own' === $_GET['via'] ? 'own' : 'relay';
 		if ( 'own' === $via ? ! Settings::has_own_app() : '' === Settings::relay_url() ) {
-			self::finish( 'error', __( 'Add your Google app\'s client ID and secret first.', 'embed-drive' ) );
+			self::finish( 'error', __( 'Add your Google app\'s client ID and secret first.', 'filefolio' ) );
 		}
 
 		$state    = wp_generate_password( 32, false );
@@ -104,19 +104,19 @@ final class OAuth {
 	public static function callback(): void {
 		// phpcs:disable WordPress.Security.NonceVerification.Recommended -- The one-time state value below is the CSRF check.
 		if ( ! current_user_can( 'manage_options' ) ) {
-			wp_die( esc_html__( 'You are not allowed to connect Google accounts.', 'embed-drive' ), '', [ 'response' => 403 ] );
+			wp_die( esc_html__( 'You are not allowed to connect Google accounts.', 'filefolio' ), '', [ 'response' => 403 ] );
 		}
 
 		$state = sanitize_text_field( wp_unslash( $_GET['state'] ?? '' ) );
 		$key   = 'embed_drive_oauth_' . get_current_user_id() . '_' . $state;
 		$saved = '' === $state ? false : get_transient( $key );
 		if ( ! is_array( $saved ) ) {
-			self::finish( 'error', __( 'That sign-in attempt expired or was not started here. Please try again.', 'embed-drive' ) );
+			self::finish( 'error', __( 'That sign-in attempt expired or was not started here. Please try again.', 'filefolio' ) );
 		}
 		delete_transient( $key );
 
 		if ( ! empty( $_GET['error'] ) || empty( $_GET['code'] ) ) {
-			self::finish( 'error', __( 'Google did not grant access.', 'embed-drive' ) );
+			self::finish( 'error', __( 'Google did not grant access.', 'filefolio' ) );
 		}
 
 		$code = is_string( $_GET['code'] ) ? wp_unslash( $_GET['code'] ) : ''; // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Opaque, sent only to the token endpoint.
@@ -146,12 +146,12 @@ final class OAuth {
 		}
 
 		if ( empty( $token['refresh_token'] ) ) {
-			self::finish( 'error', __( 'Google did not return long-term access. Please remove this app from your Google account permissions and try again.', 'embed-drive' ) );
+			self::finish( 'error', __( 'Google did not return long-term access. Please remove this app from your Google account permissions and try again.', 'filefolio' ) );
 		}
 
 		// Google lets people untick individual permissions on the consent screen.
 		if ( false === strpos( (string) ( $token['scope'] ?? '' ), 'auth/drive.readonly' ) ) {
-			self::finish( 'error', __( 'Please tick the Google Drive permission on the consent screen. Without it the plugin cannot read your files.', 'embed-drive' ) );
+			self::finish( 'error', __( 'Please tick the Google Drive permission on the consent screen. Without it the plugin cannot read your files.', 'filefolio' ) );
 		}
 
 		$profile = wp_remote_get(
@@ -163,7 +163,7 @@ final class OAuth {
 		);
 		$user    = is_wp_error( $profile ) ? null : json_decode( wp_remote_retrieve_body( $profile ), true );
 		if ( empty( $user['sub'] ) ) {
-			self::finish( 'error', __( 'Could not read the Google account details.', 'embed-drive' ) );
+			self::finish( 'error', __( 'Could not read the Google account details.', 'filefolio' ) );
 		}
 
 		Accounts::save_connected( $user, $token, $saved['via'] );
@@ -213,7 +213,7 @@ final class OAuth {
 	private static function post_relay( array $body ) {
 		$relay = Settings::relay_url();
 		if ( '' === $relay ) {
-			return new WP_Error( 'no_relay', __( 'No sign-in relay is configured.', 'embed-drive' ) );
+			return new WP_Error( 'no_relay', __( 'No sign-in relay is configured.', 'filefolio' ) );
 		}
 
 		return self::parse_token_response( wp_remote_post( $relay, [ 'timeout' => 20, 'body' => $body ] ) );
@@ -221,18 +221,18 @@ final class OAuth {
 
 	private static function parse_token_response( $response ) {
 		if ( is_wp_error( $response ) ) {
-			return new WP_Error( 'network', __( 'Could not reach the sign-in service.', 'embed-drive' ) );
+			return new WP_Error( 'network', __( 'Could not reach the sign-in service.', 'filefolio' ) );
 		}
 		$data = json_decode( wp_remote_retrieve_body( $response ), true );
 		if ( ! is_array( $data ) ) {
-			return new WP_Error( 'bad_response', __( 'The sign-in service returned an unexpected response.', 'embed-drive' ) );
+			return new WP_Error( 'bad_response', __( 'The sign-in service returned an unexpected response.', 'filefolio' ) );
 		}
 		if ( ! empty( $data['access_token'] ) ) {
 			return $data;
 		}
 		$code = (string) ( $data['error'] ?? 'token_error' );
 
-		return new WP_Error( $code, sprintf( /* translators: %s: error code from Google */ __( 'Google refused the request (%s).', 'embed-drive' ), $code ) );
+		return new WP_Error( $code, sprintf( /* translators: %s: error code from Google */ __( 'Google refused the request (%s).', 'filefolio' ), $code ) );
 	}
 
 	/**

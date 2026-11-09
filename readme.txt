@@ -1,18 +1,20 @@
-=== Embed Drive ===
+=== FileFolio – File Browser, Photo Gallery & Embeds for Google Drive ===
 Contributors: kandelmanish
 Tags: google drive, file browser, documents, download, embed
 Requires at least: 6.0
 Tested up to: 7.1
 Requires PHP: 8.0
-Stable tag: 0.5.0
+Stable tag: 0.5.1
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
-Show Google Drive folders and files on your site: file browser, search, single-file embeds and downloads. No licence keys, no upsells.
+Show Google Drive folders, photo galleries, file previews, search and downloads on your site with a block or shortcode. Read-only, no upsells.
 
 == Description ==
 
-Embed Drive shows your Google Drive content on your WordPress site. It is open source and has no licence checks, upsells or tracking.
+FileFolio shows your Google Drive content on your WordPress site: a file browser, photo galleries, previews of documents and photos, search, and single-file embeds, buttons and links. It is open source and has no licence checks, upsells or tracking.
+
+FileFolio was called Embed Drive before it joined the WordPress.org directory. It is not made by or affiliated with Google.
 
 * **File browser**: browse a folder with list or grid view, breadcrumbs and sorting.
 * **Photo gallery**: the photos in a folder as square tiles, with subfolders as albums and a full-screen viewer.
@@ -27,9 +29,9 @@ Embed Drive shows your Google Drive content on your WordPress site. It is open s
 
 = Your files stay private =
 
-Embed Drive asks Google for read-only access. Files are passed through your site, so you don't need to make them public in Drive. A visitor can only reach the folder or file you chose for that module, not the rest of your Drive.
+FileFolio asks Google for read-only access. Files are passed through your site, so you don't need to make them public in Drive. A visitor can only reach the folder or file you chose for that module, not the rest of your Drive.
 
-Anyone who can see the page can see the files in its module. Embed Drive does not restrict modules by role or password, so don't point one at a folder you want to keep private.
+Anyone who can see the page can see the files in its module. FileFolio does not restrict modules by role or password, so don't point one at a folder you want to keep private.
 
 = Source code =
 
@@ -46,10 +48,10 @@ This plugin connects to these services:
 
 == Installation ==
 
-1. In WordPress, go to Plugins > Add New and search for Embed Drive.
+1. In WordPress, go to Plugins > Add New and search for FileFolio.
 2. Install and activate it. (It can also be uploaded as `embed-drive.zip` from the [GitHub releases](https://github.com/mk-manishkandel/EmbedDriveToWordpress/releases/latest).)
-3. Go to Embed Drive > Accounts & Settings, create your own free Google app using the steps shown there, and sign in. You only do this once per site.
-4. Add the Embed Drive block to a page, or build a shortcode under Embed Drive > Shortcode Builder.
+3. Go to FileFolio > Accounts & Settings, create your own free Google app using the steps shown there, and sign in. You only do this once per site.
+4. Add the FileFolio block to a page, or build a shortcode under FileFolio > Shortcode Builder.
 
 == Frequently Asked Questions ==
 
@@ -74,6 +76,10 @@ File lists are cached for 5 minutes. Use Clear file cache in the settings to ref
 5. Accounts and settings, including the connection status.
 
 == Changelog ==
+
+= 0.5.1 =
+* Renamed from Embed Drive to FileFolio. Your shortcodes, blocks, settings and Google sign-in stay as they are.
+* If the GitHub copy and the WordPress.org copy are both installed, only one runs and the admin screens say so. Deleting either copy keeps your settings.
 
 = 0.5.0 =
 * New: photo gallery module. It shows only the photos in a folder, and its visitor link can't reach anything else, not even other files in the same folder.

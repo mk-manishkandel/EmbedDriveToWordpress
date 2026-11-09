@@ -11,7 +11,7 @@
 		}
 		const label = button.textContent;
 		const done = () => {
-			button.textContent = __( 'Copied', 'embed-drive' );
+			button.textContent = __( 'Copied', 'filefolio' );
 			setTimeout( () => ( button.textContent = label ), 1500 );
 		};
 		const code = button.parentElement.querySelector( 'code' );

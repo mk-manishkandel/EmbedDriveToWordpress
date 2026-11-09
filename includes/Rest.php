@@ -133,7 +133,7 @@ final class Rest {
 		}
 		$term = trim( sanitize_text_field( self::text_param( $request, 'q' ) ) );
 		if ( mb_strlen( $term ) < 2 ) {
-			return new WP_Error( 'short_query', __( 'Please type at least 2 characters.', 'embed-drive' ), [ 'status' => 400 ] );
+			return new WP_Error( 'short_query', __( 'Please type at least 2 characters.', 'filefolio' ), [ 'status' => 400 ] );
 		}
 		if ( ! self::within_rate( 'search', 30 ) ) {
 			return self::too_many();
@@ -172,7 +172,7 @@ final class Rest {
 		}
 		$mime = (string) $file['mimeType'];
 		if ( ! FileTypes::is_downloadable( $mime ) ) {
-			return new WP_Error( 'unsupported', __( 'This kind of Google file cannot be downloaded.', 'embed-drive' ), [ 'status' => 415 ] );
+			return new WP_Error( 'unsupported', __( 'This kind of Google file cannot be downloaded.', 'filefolio' ), [ 'status' => 415 ] );
 		}
 		// Previewing must not become a way around a module's download setting.
 		if ( empty( $module['d'] ) && ( $viewer ? 'viewer' !== FileTypes::preview_kind( $mime ) : ( $inline && ! FileTypes::can_inline( $mime ) ) ) ) {
@@ -219,7 +219,7 @@ final class Rest {
 		// The account's bearer token goes with this request, so it must only ever go to Google.
 		$link = (string) ( $file['thumbnailLink'] ?? '' );
 		if ( ! Stream::is_google_url( $link ) ) {
-			return new WP_Error( 'no_thumb', __( 'No thumbnail is available.', 'embed-drive' ), [ 'status' => 404 ] );
+			return new WP_Error( 'no_thumb', __( 'No thumbnail is available.', 'filefolio' ), [ 'status' => 404 ] );
 		}
 
 		$token = Accounts::access_token( $module['a'] );
@@ -236,7 +236,7 @@ final class Rest {
 		);
 		$type     = strtolower( (string) wp_remote_retrieve_header( $response, 'content-type' ) );
 		if ( is_wp_error( $response ) || 200 !== (int) wp_remote_retrieve_response_code( $response ) || ! preg_match( '#^image/(jpeg|png|gif|webp)#', $type ) ) {
-			return new WP_Error( 'no_thumb', __( 'No thumbnail is available.', 'embed-drive' ), [ 'status' => 404 ] );
+			return new WP_Error( 'no_thumb', __( 'No thumbnail is available.', 'filefolio' ), [ 'status' => 404 ] );
 		}
 
 		Stream::prepare_output();
@@ -268,7 +268,7 @@ final class Rest {
 
 		$ids = array_values( array_filter( array_map( [ self::class, 'clean_id' ], (array) $request->get_param( 'ids' ) ) ) );
 		if ( ! $ids ) {
-			return new WP_Error( 'nothing_selected', __( 'Nothing is selected.', 'embed-drive' ), [ 'status' => 400 ] );
+			return new WP_Error( 'nothing_selected', __( 'Nothing is selected.', 'filefolio' ), [ 'status' => 400 ] );
 		}
 
 		$entries = ZipDownload::collect( $module, $ids );
@@ -293,11 +293,11 @@ final class Rest {
 		$key  = preg_replace( '/[^A-Za-z0-9]/', '', self::text_param( $request, 'key' ) );
 		$job  = '' === $key ? false : get_transient( 'embed_drive_zip_' . $key );
 		if ( ! is_array( $job ) ) {
-			return new WP_Error( 'expired', __( 'This download link has expired. Please select the files again.', 'embed-drive' ), [ 'status' => 410 ] );
+			return new WP_Error( 'expired', __( 'This download link has expired. Please select the files again.', 'filefolio' ), [ 'status' => 410 ] );
 		}
 		delete_transient( 'embed_drive_zip_' . $key );
 
-		ActivityLog::record( 'zip', $job['account'], '', sprintf( /* translators: %d: number of files */ _n( '%d file', '%d files', count( $job['entries'] ), 'embed-drive' ), count( $job['entries'] ) ) );
+		ActivityLog::record( 'zip', $job['account'], '', sprintf( /* translators: %d: number of files */ _n( '%d file', '%d files', count( $job['entries'] ), 'filefolio' ), count( $job['entries'] ) ) );
 		ZipDownload::stream( $job['account'], $job['entries'] );
 		exit;
 	}
@@ -305,15 +305,15 @@ final class Rest {
 	public static function browse( WP_REST_Request $request ) {
 		$account = self::text_param( $request, 'account' );
 		if ( ! Accounts::get( $account ) ) {
-			return new WP_Error( 'no_account', __( 'Choose a connected account first.', 'embed-drive' ), [ 'status' => 400 ] );
+			return new WP_Error( 'no_account', __( 'Choose a connected account first.', 'filefolio' ), [ 'status' => 400 ] );
 		}
 		$drive  = new Drive( $account );
 		$parent = self::text_param( $request, 'parent' );
 
 		if ( '' === $parent ) {
 			$items  = [
-				[ 'id' => 'root', 'name' => __( 'My Drive', 'embed-drive' ), 'type' => 'folder' ],
-				[ 'id' => 'shared', 'name' => __( 'Shared with me', 'embed-drive' ), 'type' => 'virtual' ],
+				[ 'id' => 'root', 'name' => __( 'My Drive', 'filefolio' ), 'type' => 'folder' ],
+				[ 'id' => 'shared', 'name' => __( 'Shared with me', 'filefolio' ), 'type' => 'virtual' ],
 			];
 			$drives = $drive->shared_drives();
 			if ( ! is_wp_error( $drives ) ) {
@@ -329,7 +329,7 @@ final class Rest {
 			$page = $drive->shared_with_me();
 		} else {
 			$parent = self::clean_id( $parent );
-			$folder = '' === $parent ? new WP_Error( 'not_found', __( 'File not found.', 'embed-drive' ), [ 'status' => 404 ] ) : $drive->get_file( $parent );
+			$folder = '' === $parent ? new WP_Error( 'not_found', __( 'File not found.', 'filefolio' ), [ 'status' => 404 ] ) : $drive->get_file( $parent );
 			if ( is_wp_error( $folder ) ) {
 				return $folder;
 			}
@@ -459,11 +459,11 @@ final class Rest {
 	 * A missing file and one outside the folder must look identical to a visitor.
 	 */
 	private static function denied(): WP_Error {
-		return new WP_Error( 'not_found', __( 'File not found.', 'embed-drive' ), [ 'status' => 404 ] );
+		return new WP_Error( 'not_found', __( 'File not found.', 'filefolio' ), [ 'status' => 404 ] );
 	}
 
 	private static function too_many(): WP_Error {
-		return new WP_Error( 'rate_limited', __( 'Too many requests. Please wait a minute and try again.', 'embed-drive' ), [ 'status' => 429 ] );
+		return new WP_Error( 'rate_limited', __( 'Too many requests. Please wait a minute and try again.', 'filefolio' ), [ 'status' => 429 ] );
 	}
 
 	private static function visitor_error( WP_Error $error ): WP_Error {
@@ -475,6 +475,6 @@ final class Rest {
 			return $error;
 		}
 
-		return new WP_Error( 'unavailable', __( 'This content is not available right now.', 'embed-drive' ), [ 'status' => 502 ] );
+		return new WP_Error( 'unavailable', __( 'This content is not available right now.', 'filefolio' ), [ 'status' => 502 ] );
 	}
 }

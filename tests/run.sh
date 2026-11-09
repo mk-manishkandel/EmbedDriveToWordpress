@@ -19,11 +19,14 @@ return [
 	'auth_endpoint' => 'http://127.0.0.1:9400/auth', 'token_endpoint' => 'http://127.0.0.1:9400/token',
 ];
 PHP
-echo '{"steps":[{"step":"activatePlugin","pluginPath":"embed-drive/embed-drive.php"}]}' > "$WORK/blueprint.json"
+# The same code is also installed as filefolio/, as on a site moving from the GitHub copy to the
+# WordPress.org one, so the suite checks that two copies side by side behave.
+echo '{"steps":[{"step":"activatePlugin","pluginPath":"embed-drive/embed-drive.php"},{"step":"activatePlugin","pluginPath":"filefolio/embed-drive.php"}]}' > "$WORK/blueprint.json"
 
 node "$ROOT/tests/mock-google.mjs" &
 (cd "$WORK" && exec npx -y @wp-playground/cli@3.1.61 server --port=9500 --php="$PHP_VERSION" --wp="$WP_VERSION" \
 	--mount="$ROOT:/wordpress/wp-content/plugins/embed-drive" \
+	--mount="$ROOT:/wordpress/wp-content/plugins/filefolio" \
 	--mount="$ROOT/tests/mock-endpoints.php:/wordpress/wp-content/mu-plugins/mock-endpoints.php" \
 	--mount="$WORK/relay-test:/wordpress/relay-test" \
 	--blueprint="$WORK/blueprint.json") > "$WORK/server.log" 2>&1 &

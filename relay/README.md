@@ -1,4 +1,4 @@
-# Embed Drive sign-in relay (optional)
+# FileFolio sign-in relay (optional)
 
 **Most people don't need this.** The plugin's normal setup is for each site owner to use their own Google app. The relay is for someone managing sites for others who wants one shared Google app.
 
@@ -16,7 +16,7 @@ You need HTTPS and PHP 8.0+ with cURL. A subfolder of an existing website is fin
 2. Set up the OAuth consent screen. Add the scopes `drive.readonly`, `userinfo.email` and `userinfo.profile`. **Publish the app**: in Testing mode, sign-ins expire after 7 days.
 3. Create an **OAuth client ID** of type *Web application*. Add the public URL of the relay's `index.php` as an authorized redirect URI.
 4. Upload `index.php` and `config.example.php`. Copy `config.example.php` to `config.php` and fill it in. Generate `state_secret` with `openssl rand -hex 32`.
-5. Check that the relay's URL in a browser shows `Embed Drive sign-in relay.`
+5. Check that the relay's URL in a browser shows `FileFolio sign-in relay.`
 6. In each WordPress site's `wp-config.php`, add `define( 'EMBED_DRIVE_RELAY_URL', 'https://example.com/embed-drive-relay/index.php' );`.
 
 ## Google's limits

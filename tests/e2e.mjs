@@ -896,7 +896,7 @@ await it( 'the summary email: not for a blip, once when repeated, then quiet, wi
 	assert.match( mail.subject, /trouble with Google Drive/ );
 	assert.match( mail.message, /Google had an internal error: in 3 separate minutes/ );
 	assert.match( mail.message, /HTTP 503 backendError/ );
-	assert.match( mail.message, /Embed Drive version: \d/ );
+	assert.match( mail.message, /FileFolio version: \d/ );
 	for ( const secret of [ 'access-', 'refresh-1', 'Bearer', 'visitor-term', '<Error>' ] ) {
 		assert.ok( ! mail.message.includes( secret ), `email contains ${ secret }` );
 	}
@@ -1041,6 +1041,15 @@ await it( 'the privacy tools export and erase one person\'s activity, and nobody
 	assert.equal( erased.items_removed, true );
 	assert.deepEqual( after.data, [] );
 	assert.equal( bob.data.length, 1, "another person's entries stay" );
+} );
+
+await it( 'with both copies installed, one runs, admins are told, and deleting either keeps the settings', async () => {
+	const { both_active: both, running, kept } = await test_( 'two_copies' );
+	assert.equal( both, true );
+	assert.match( running, /\/embed-drive\/embed-drive\.php$/ );
+	assert.deepEqual( kept, { filefolio: true, 'embed-drive': true } );
+	const html = await ( await session( `${ SITE }/wp-admin/admin.php?page=embed-drive` ) ).text();
+	assert.equal( ( html.match( /FileFolio is installed twice/g ) || [] ).length, 1 );
 } );
 
 const log = await ( await fetch( MOCK + '/__log' ) ).json();

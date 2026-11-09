@@ -36,7 +36,7 @@ final class ZipDownload {
 		foreach ( $ids as $id ) {
 			$path = $drive->path_from_root( $module['r'], $id );
 			if ( is_wp_error( $path ) || ! $path ) {
-				return new WP_Error( 'not_found', __( 'File not found.', 'embed-drive' ), [ 'status' => 404 ] );
+				return new WP_Error( 'not_found', __( 'File not found.', 'filefolio' ), [ 'status' => 404 ] );
 			}
 			$error = self::add( $drive, end( $path ), '', $state, $max_files, $max_bytes, 0 );
 			if ( $error ) {
@@ -45,7 +45,7 @@ final class ZipDownload {
 		}
 
 		if ( ! $state['entries'] ) {
-			return new WP_Error( 'empty', __( 'There are no files to download in this selection.', 'embed-drive' ), [ 'status' => 400 ] );
+			return new WP_Error( 'empty', __( 'There are no files to download in this selection.', 'filefolio' ), [ 'status' => 400 ] );
 		}
 
 		return $state['entries'];
@@ -56,7 +56,7 @@ final class ZipDownload {
 			'too_large',
 			sprintf(
 				/* translators: 1: number of files, 2: size in MB */
-				__( 'That selection is too big to download as a ZIP. The limit is %1$d files or %2$d MB.', 'embed-drive' ),
+				__( 'That selection is too big to download as a ZIP. The limit is %1$d files or %2$d MB.', 'filefolio' ),
 				$max_files,
 				(int) ( $max_bytes / MB_IN_BYTES )
 			),
@@ -74,7 +74,7 @@ final class ZipDownload {
 			do {
 				$page = $drive->list_children( $file['id'], 'name', 'asc', $token, 200 );
 				if ( is_wp_error( $page ) ) {
-					return new WP_Error( 'unavailable', __( 'This content is not available right now.', 'embed-drive' ), [ 'status' => 502 ] );
+					return new WP_Error( 'unavailable', __( 'This content is not available right now.', 'filefolio' ), [ 'status' => 502 ] );
 				}
 				foreach ( (array) ( $page['files'] ?? [] ) as $child ) {
 					$error = self::add( $drive, $child, $folder, $state, $max_files, $max_bytes, $depth + 1 );

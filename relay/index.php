@@ -1,6 +1,6 @@
 <?php
 /**
- * Embed Drive sign-in relay. One file, no database, stores nothing.
+ * FileFolio sign-in relay. One file, no database, stores nothing.
  *
  * Google needs one fixed redirect URL and a client secret, which a plugin installed on many
  * different sites can't provide. This script holds the secret and passes the sign-in along:
@@ -48,7 +48,7 @@ if ( 'POST' === $_SERVER['REQUEST_METHOD'] && 'exchange' === $action ) {
 } elseif ( isset( $_GET['state'] ) ) {
 	relay_return( $config );
 } else {
-	echo 'Embed Drive sign-in relay.';
+	echo 'FileFolio sign-in relay.';
 }
 
 function relay_exchange( array $config ): void {

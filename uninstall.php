@@ -8,6 +8,14 @@
 
 defined( 'WP_UNINSTALL_PLUGIN' ) || exit;
 
+// Deleting one copy while the other stays, after switching between the GitHub and WordPress.org
+// copies, must not take the settings and Google sign-in with it.
+foreach ( [ 'embed-drive', 'filefolio' ] as $embed_drive_folder ) {
+	if ( basename( __DIR__ ) !== $embed_drive_folder && file_exists( WP_PLUGIN_DIR . '/' . $embed_drive_folder . '/embed-drive.php' ) ) {
+		return;
+	}
+}
+
 global $wpdb;
 
 foreach ( array_keys( (array) get_option( 'embed_drive_accounts', [] ) ) as $embed_drive_account ) {

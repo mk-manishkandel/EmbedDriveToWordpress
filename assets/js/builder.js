@@ -36,7 +36,7 @@
 			output.value = '';
 			copy.disabled = true;
 			targetRow.classList.remove( 'is-chosen' );
-			targetLabel.textContent = wantsFolder() ? __( 'No folder chosen yet', 'embed-drive' ) : __( 'No file chosen yet', 'embed-drive' );
+			targetLabel.textContent = wantsFolder() ? __( 'No folder chosen yet', 'filefolio' ) : __( 'No file chosen yet', 'filefolio' );
 			return;
 		}
 		targetRow.classList.add( 'is-chosen' );
@@ -109,7 +109,7 @@
 	copy.addEventListener( 'click', () => {
 		const label = copy.textContent;
 		const done = () => {
-			copy.textContent = __( 'Copied', 'embed-drive' );
+			copy.textContent = __( 'Copied', 'filefolio' );
 			setTimeout( () => ( copy.textContent = label ), 1500 );
 		};
 		const failed = () => {

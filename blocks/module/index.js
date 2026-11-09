@@ -6,12 +6,12 @@
 	const { __ } = wp.i18n;
 
 	const MODES = [
-		{ value: 'files', label: __( 'File browser', 'embed-drive' ) },
-		{ value: 'gallery', label: __( 'Photo gallery', 'embed-drive' ) },
-		{ value: 'search', label: __( 'Search box', 'embed-drive' ) },
-		{ value: 'embed', label: __( 'Embed one file', 'embed-drive' ) },
-		{ value: 'button', label: __( 'Download button', 'embed-drive' ) },
-		{ value: 'link', label: __( 'Download link', 'embed-drive' ) },
+		{ value: 'files', label: __( 'File browser', 'filefolio' ) },
+		{ value: 'gallery', label: __( 'Photo gallery', 'filefolio' ) },
+		{ value: 'search', label: __( 'Search box', 'filefolio' ) },
+		{ value: 'embed', label: __( 'Embed one file', 'filefolio' ) },
+		{ value: 'button', label: __( 'Download button', 'filefolio' ) },
+		{ value: 'link', label: __( 'Download link', 'filefolio' ) },
 	];
 
 	const wantsFolder = ( mode ) => [ 'files', 'gallery', 'search' ].includes( mode );
@@ -40,18 +40,18 @@
 			? el(
 					Button,
 					{ variant: target ? 'secondary' : 'primary', onClick: choose },
-					folderMode ? __( 'Choose a folder', 'embed-drive' ) : __( 'Choose a file', 'embed-drive' )
+					folderMode ? __( 'Choose a folder', 'filefolio' ) : __( 'Choose a file', 'filefolio' )
 			  )
-			: el( 'p', null, __( 'Connect a Google account under Embed Drive, then come back.', 'embed-drive' ) );
+			: el( 'p', null, __( 'Connect a Google account under FileFolio, then come back.', 'filefolio' ) );
 
 		const inspector = el(
 			InspectorControls,
 			null,
 			el(
 				PanelBody,
-				{ title: __( 'Module', 'embed-drive' ) },
+				{ title: __( 'Module', 'filefolio' ) },
 				el( SelectControl, {
-					label: __( 'Type', 'embed-drive' ),
+					label: __( 'Type', 'filefolio' ),
 					value: a.mode,
 					options: MODES,
 					onChange: ( mode ) =>
@@ -59,7 +59,7 @@
 				} ),
 				accounts.length > 1 &&
 					el( SelectControl, {
-						label: __( 'Google account', 'embed-drive' ),
+						label: __( 'Google account', 'filefolio' ),
 						value: account,
 						options: accounts.map( ( x ) => ( { value: x.id, label: x.email } ) ),
 						onChange: ( value ) => set( { account: value, folder: '', file: '', targetName: '' } ),
@@ -68,80 +68,80 @@
 			),
 			el(
 				PanelBody,
-				{ title: __( 'Options', 'embed-drive' ) },
+				{ title: __( 'Options', 'filefolio' ) },
 				a.mode === 'files' &&
 					el( SelectControl, {
-						label: __( 'Layout', 'embed-drive' ),
+						label: __( 'Layout', 'filefolio' ),
 						value: a.view,
 						options: [
-							{ value: 'grid', label: __( 'Grid', 'embed-drive' ) },
-							{ value: 'list', label: __( 'List', 'embed-drive' ) },
+							{ value: 'grid', label: __( 'Grid', 'filefolio' ) },
+							{ value: 'list', label: __( 'List', 'filefolio' ) },
 						],
 						onChange: ( view ) => set( { view } ),
 					} ),
 				( a.mode === 'files' || a.mode === 'gallery' ) &&
 					el( SelectControl, {
-						label: __( 'Sort by', 'embed-drive' ),
+						label: __( 'Sort by', 'filefolio' ),
 						value: a.sort,
 						options: [
-							{ value: 'name', label: __( 'Name', 'embed-drive' ) },
-							{ value: 'modified', label: __( 'Modified', 'embed-drive' ) },
-							{ value: 'size', label: __( 'Size', 'embed-drive' ) },
+							{ value: 'name', label: __( 'Name', 'filefolio' ) },
+							{ value: 'modified', label: __( 'Modified', 'filefolio' ) },
+							{ value: 'size', label: __( 'Size', 'filefolio' ) },
 						],
 						onChange: ( sort ) => set( { sort } ),
 					} ),
 				( a.mode === 'files' || a.mode === 'gallery' ) &&
 					el( SelectControl, {
-						label: __( 'Order', 'embed-drive' ),
+						label: __( 'Order', 'filefolio' ),
 						value: a.order,
 						options: [
-							{ value: 'asc', label: __( 'Ascending', 'embed-drive' ) },
-							{ value: 'desc', label: __( 'Descending', 'embed-drive' ) },
+							{ value: 'asc', label: __( 'Ascending', 'filefolio' ) },
+							{ value: 'desc', label: __( 'Descending', 'filefolio' ) },
 						],
 						onChange: ( order ) => set( { order } ),
 					} ),
 				( folderMode || a.mode === 'embed' ) &&
 					el( ToggleControl, {
-						label: __( 'Allow downloads', 'embed-drive' ),
+						label: __( 'Allow downloads', 'filefolio' ),
 						checked: a.download === undefined ? a.mode !== 'embed' : a.download,
 						onChange: ( download ) => set( { download } ),
 					} ),
 				a.mode === 'files' &&
 					el( ToggleControl, {
-						label: __( 'Allow ZIP downloads', 'embed-drive' ),
+						label: __( 'Allow ZIP downloads', 'filefolio' ),
 						checked: a.zip,
 						onChange: ( zip ) => set( { zip } ),
 					} ),
 				( a.mode === 'files' || a.mode === 'gallery' ) &&
 					el( TextControl, {
-						label: __( 'Minimum height (px)', 'embed-drive' ),
-						help: __( 'Use 0 to follow the plugin settings.', 'embed-drive' ),
+						label: __( 'Minimum height (px)', 'filefolio' ),
+						help: __( 'Use 0 to follow the plugin settings.', 'filefolio' ),
 						type: 'number',
 						value: a.min_height,
 						onChange: ( value ) => set( { min_height: Math.max( 0, parseInt( value, 10 ) || 0 ) } ),
 					} ),
 				a.mode === 'files' &&
 					el( ToggleControl, {
-						label: __( 'Show search box', 'embed-drive' ),
+						label: __( 'Show search box', 'filefolio' ),
 						checked: a.search,
 						onChange: ( search ) => set( { search } ),
 					} ),
 				folderMode &&
 					a.mode !== 'gallery' &&
 					el( ToggleControl, {
-						label: __( 'Allow previews', 'embed-drive' ),
+						label: __( 'Allow previews', 'filefolio' ),
 						checked: a.preview,
 						onChange: ( preview ) => set( { preview } ),
 					} ),
 				( a.mode === 'button' || a.mode === 'link' ) &&
 					el( TextControl, {
-						label: __( 'Label', 'embed-drive' ),
+						label: __( 'Label', 'filefolio' ),
 						value: a.label,
 						onChange: ( label ) => set( { label } ),
 					} ),
 				a.mode === 'embed' &&
 					el( TextControl, {
-						label: __( 'Height for documents (px)', 'embed-drive' ),
+						label: __( 'Height for documents (px)', 'filefolio' ),
 						type: 'number',
 						value: a.height,
 						onChange: ( value ) => set( { height: parseInt( value, 10 ) || 600 } ),
@@ -160,10 +160,10 @@
 					Placeholder,
 					{
 						icon: 'cloud',
-						label: 'Embed Drive' + ( modeLabel ? ': ' + modeLabel : '' ),
+						label: 'FileFolio' + ( modeLabel ? ': ' + modeLabel : '' ),
 						instructions: target
 							? a.targetName || target
-							: __( 'Choose what to show from Google Drive.', 'embed-drive' ),
+							: __( 'Choose what to show from Google Drive.', 'filefolio' ),
 					},
 					chooser
 				)
