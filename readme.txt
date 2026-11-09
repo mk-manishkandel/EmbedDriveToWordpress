@@ -4,7 +4,7 @@ Tags: google drive, file browser, documents, download, embed
 Requires at least: 6.0
 Tested up to: 7.1
 Requires PHP: 8.0
-Stable tag: 0.5.1
+Stable tag: 0.5.2
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -76,6 +76,9 @@ File lists are cached for 5 minutes. Use Clear file cache in the settings to ref
 5. Accounts and settings, including the connection status.
 
 == Changelog ==
+
+= 0.5.2 =
+* Security: a synced pattern only shows FileFolio content if the person who made it and the last person to change it are both allowed to embed Drive files (Editors and above by default). Before, an Author's pattern placed on an Editor's page would show.
 
 = 0.5.1 =
 * Renamed from Embed Drive to FileFolio. Your shortcodes, blocks, settings and Google sign-in stay as they are.

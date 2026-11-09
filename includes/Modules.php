@@ -19,6 +19,20 @@ final class Modules {
 	/** How many widget areas are being drawn right now. */
 	private static int $sidebars = 0;
 
+	/**
+	 * One entry per synced pattern being drawn (they can be nested): whether its people may embed.
+	 *
+	 * @var bool[]
+	 */
+	private static array $patterns = [];
+
+	/**
+	 * Patterns already checked in this request, by ID.
+	 *
+	 * @var bool[]
+	 */
+	private static array $pattern_checked = [];
+
 	public static function register(): void {
 		wp_register_style( 'embed-drive', EMBED_DRIVE_URL . 'assets/css/embed-drive.css', [], EMBED_DRIVE_VERSION );
 		wp_register_script( 'embed-drive', EMBED_DRIVE_URL . 'assets/js/embed-drive.js', [], EMBED_DRIVE_VERSION, true );
@@ -83,6 +97,34 @@ final class Modules {
 			self::$sidebars--;
 		} );
 
+		// A synced pattern is written by its own author, not by the author of the page it is placed in.
+		// Last, so a filter that replaces the whole block (and skips the matching filter below) is known.
+		add_filter(
+			'pre_render_block',
+			static function ( $pre, $block ) {
+				if ( null === $pre && 'core/block' === ( $block['blockName'] ?? '' ) ) {
+					self::$patterns[] = self::pattern_may_embed( (int) ( $block['attrs']['ref'] ?? 0 ) );
+				}
+
+				return $pre;
+			},
+			PHP_INT_MAX,
+			2
+		);
+		add_filter(
+			'render_block_core/block',
+			static function ( $html ) {
+				// Shortcodes in a pattern run later, with the page, so ones from an untrusted pattern are removed now.
+				if ( false === array_pop( self::$patterns ) && is_string( $html ) && false !== stripos( $html, '[embed_drive' ) ) {
+					$html = preg_replace_callback( '/' . get_shortcode_regex( [ 'embed_drive' ] ) . '/', static fn( $m ) => '[' === $m[1] && ']' === $m[6] ? $m[0] : self::pattern_notice(), $html );
+				}
+
+				return $html;
+			},
+			10,
+			1
+		);
+
 		add_shortcode( 'embed_drive', [ self::class, 'render' ] );
 		register_block_type( EMBED_DRIVE_DIR . 'blocks/module', [ 'render_callback' => [ self::class, 'render_block' ] ] );
 	}
@@ -128,6 +170,10 @@ final class Modules {
 	 * @param array|string $atts Shortcode attributes.
 	 */
 	public static function render( $atts ): string {
+		if ( in_array( false, self::$patterns, true ) ) {
+			return self::pattern_notice();
+		}
+
 		// Anyone who can write a post could otherwise publish any file in the connected Drive.
 		if ( ! self::author_may_embed() ) {
 			return self::admin_notice( __( 'FileFolio: this content is hidden because the author of this post is not allowed to embed Drive files.', 'filefolio' ) );
@@ -318,6 +364,30 @@ final class Modules {
 		}
 
 		return (bool) apply_filters( 'embed_drive_author_may_embed', $allowed, $post );
+	}
+
+	/**
+	 * A synced pattern is trusted only if both the person who made it and the last person to change it
+	 * may embed. An Editor tidying an Author's pattern may not notice which folder it shows, so that
+	 * does not approve it; the Editor can make their own copy instead.
+	 */
+	private static function pattern_may_embed( int $id ): bool {
+		if ( isset( self::$pattern_checked[ $id ] ) ) {
+			return self::$pattern_checked[ $id ];
+		}
+		$pattern = $id ? get_post( $id ) : null;
+		$allowed = true; // A missing pattern draws nothing.
+		if ( $pattern instanceof \WP_Post && 'wp_block' === $pattern->post_type ) {
+			$last    = (int) get_post_meta( $id, '_edit_last', true );
+			$allowed = user_can( (int) $pattern->post_author, self::embed_capability() ) && ( ! $last || user_can( $last, self::embed_capability() ) );
+		}
+		self::$pattern_checked[ $id ] = (bool) apply_filters( 'embed_drive_pattern_may_embed', $allowed, $pattern );
+
+		return self::$pattern_checked[ $id ];
+	}
+
+	private static function pattern_notice(): string {
+		return self::admin_notice( __( 'FileFolio: this content is hidden because the synced pattern it is in was made or last changed by someone who is not allowed to embed Drive files.', 'filefolio' ) );
 	}
 
 	/**

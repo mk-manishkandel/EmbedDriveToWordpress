@@ -223,6 +223,20 @@ add_action(
 							);
 
 							return [ 'url' => get_permalink( $post ) ];
+						case 'pattern_page':
+							// A synced pattern made (and maybe last changed) by one role, placed by an Editor.
+							$person  = static fn( $role ) => wp_insert_user( [ 'user_login' => 'p' . wp_generate_password( 8, false ), 'user_pass' => wp_generate_password(), 'role' => $role ] );
+							$pattern = static function ( $role, $content, $last = '' ) use ( $person ) {
+								$id = wp_insert_post( [ 'post_type' => 'wp_block', 'post_title' => 'Pattern', 'post_status' => 'publish', 'post_author' => $person( $role ), 'post_content' => $content ] );
+								$last && update_post_meta( $id, '_edit_last', $person( $last ) );
+
+								return $id;
+							};
+							$inner   = $pattern( (string) $r->get_param( 'made_by' ), (string) $r->get_param( 'code' ), (string) $r->get_param( 'changed_by' ) );
+							$ref     = $r->get_param( 'wrapped' ) ? $pattern( 'editor', '<!-- wp:block {"ref":' . $inner . '} /-->' ) : $inner;
+							$post    = wp_insert_post( [ 'post_title' => 'Pattern page', 'post_status' => 'publish', 'post_author' => $person( 'editor' ), 'post_content' => '<!-- wp:block {"ref":' . $ref . '} /-->' ] );
+
+							return [ 'url' => get_permalink( $post ) ];
 						case 'create_page':
 							$post = wp_insert_post(
 								[

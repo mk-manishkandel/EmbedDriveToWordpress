@@ -168,6 +168,23 @@ await it( 'SECURITY: post authors who cannot embed get nothing', async () => {
 	const allowed = await ( await fetch( editor.url ) ).text();
 	assert.ok( allowed.includes( 'data-embed-drive' ), 'editor post renders' );
 } );
+await it( 'SECURITY: a synced pattern from someone who cannot embed shows nothing, even on an Editor\'s page', async () => {
+	const block = '<!-- wp:embed-drive/module {"folder":"root-id"} /-->';
+	const shortcode = '<!-- wp:paragraph --><p>[embed_drive mode="files" folder="root-id"] and [[embed_drive folder="x"]]</p><!-- /wp:paragraph -->';
+	const page = async ( params ) => ( await fetch( ( await test_( 'pattern_page', params ) ).url ) ).text();
+	const shows = ( html ) => html.includes( 'data-embed-drive' );
+
+	assert.ok( shows( await page( { made_by: 'editor', code: block } ) ), "an Editor's pattern works" );
+	assert.ok( shows( await page( { made_by: 'editor', code: shortcode } ) ), "an Editor's pattern with a shortcode works" );
+	assert.ok( ! shows( await page( { made_by: 'author', code: block } ) ), "an Author's pattern with the block" );
+	const viaShortcode = await page( { made_by: 'author', code: shortcode } );
+	assert.ok( ! shows( viaShortcode ), "an Author's pattern with the shortcode" );
+	assert.ok( ! viaShortcode.includes( 'root-id' ), 'the removed shortcode is not printed either' );
+	assert.ok( viaShortcode.includes( '[embed_drive folder="x"]' ), 'an escaped shortcode is left as text' );
+	assert.ok( ! shows( await page( { made_by: 'editor', changed_by: 'author', code: block } ) ), 'an Editor\'s pattern last changed by an Author' );
+	assert.ok( ! shows( await page( { made_by: 'author', changed_by: 'editor', code: block } ) ), "an Editor changing an Author's pattern does not approve it" );
+	assert.ok( ! shows( await page( { made_by: 'author', code: block, wrapped: true } ) ), "an Author's pattern inside an Editor's pattern" );
+} );
 await it( 'SECURITY: admin routes need login', async () => {
 	assert.ok( [ 401, 403 ].includes( ( await get( 'admin/browse', { account } ) ).status ) );
 } );
